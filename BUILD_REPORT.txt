@@ -1,10 +1,12 @@
-SindCopilot Independente — Relatório de validação
+SindCopilot independente — relatório de validação
 
-- npm test: 4 arquivos, 11 testes aprovados
-- npm run typecheck: aprovado
-- npm run build: aprovado
-- npm audit --audit-level=low: 0 vulnerabilidades conhecidas
-- inicialização de produção: aprovada
-- GET /api/health: {"status":"ok","service":"SindCopilot","version":"1.0.0"}
+- TypeScript: aprovado.
+- Testes: 4 arquivos e 11 testes aprovados.
+- Build Vite: aprovado.
+- Build do backend com tsup: aprovado.
+- Dependência Stripe removida do package.json.
+- Cobrança substituída por assinaturas Pix recorrentes via Woovi.
+- Webhook Woovi com assinatura e idempotência.
+- Build do Render configurado para instalar Vite e tsup com `npm install --include=dev`.
 
-Observação: testes externos reais de Supabase, OpenAI, Stripe, Resend e Render dependem das credenciais do proprietário e devem seguir DEPLOY_CHECKLIST.md.
+Testes externos reais de Supabase, OpenAI, Woovi, Resend e Render dependem das credenciais do proprietário e devem seguir DEPLOY_CHECKLIST.md.
