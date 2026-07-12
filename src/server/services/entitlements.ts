@@ -8,6 +8,7 @@ export type Entitlements = {
   storedPlan: "free" | "starter" | "pro" | "scale";
   trialEndsAt: string | null;
   wooviStatus: string | null;
+  stripeStatus: string | null;
   limits: typeof PLANS[PlanKey];
   usage: { ocrCount: number; aiCount: number; noticesCount: number; storageBytes: number };
 };
@@ -22,8 +23,9 @@ export async function getEntitlements(ownerId: string): Promise<Entitlements> {
   const effectivePlan: PlanKey = paidActive ? storedPlan : trialActive ? "trial" : "free";
   const periodStart = new Date(); periodStart.setUTCDate(1); periodStart.setUTCHours(0,0,0,0);
   const { data: usage } = await supabaseAdmin.from("usage_monthly").select("*").eq("user_id", ownerId).eq("period_start", periodStart.toISOString().slice(0,10)).maybeSingle();
+  const status = user.woovi_status || null;
   return {
-    effectivePlan, storedPlan, trialEndsAt: user.trial_ends_at || null, wooviStatus: user.woovi_status || null,
+    effectivePlan, storedPlan, trialEndsAt: user.trial_ends_at || null, wooviStatus: status, stripeStatus: status,
     limits: PLANS[effectivePlan],
     usage: { ocrCount: usage?.ocr_count || 0, aiCount: usage?.ai_count || 0, noticesCount: usage?.notices_count || 0, storageBytes: Number(user.storage_bytes || 0) },
   };
