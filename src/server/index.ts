@@ -15,17 +15,35 @@ const app = express();
 app.set("trust proxy", 1);
 app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: "cross-origin" } }));
 
-function isWooviRegistrationTest(payload: unknown): payload is { data_criacao: string; event: string } {
+function parseWooviPayload(rawBody: Buffer): unknown {
+  const firstParse = JSON.parse(rawBody.toString("utf8"));
+
+  // Alguns painéis exibem ou encaminham o corpo como uma string JSON escapada.
+  // Aceitamos uma segunda decodificação somente quando o primeiro resultado é string.
+  if (typeof firstParse === "string") {
+    return JSON.parse(firstParse);
+  }
+
+  return firstParse;
+}
+
+function isWooviRegistrationTest(payload: unknown): payload is {
+  data_criacao: string;
+  evento: "teste_webhook";
+  event: string;
+} {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) return false;
 
   const body = payload as Record<string, unknown>;
   const keys = Object.keys(body).sort();
 
   return (
-    keys.length === 2 &&
+    keys.length === 3 &&
     keys[0] === "data_criacao" &&
     keys[1] === "event" &&
+    keys[2] === "evento" &&
     typeof body.data_criacao === "string" &&
+    body.evento === "teste_webhook" &&
     typeof body.event === "string" &&
     body.event.startsWith("OPENPIX:")
   );
@@ -43,14 +61,14 @@ app.post("/api/woovi/webhook", express.raw({ type: "application/json" }), async 
 
     let payload: unknown;
     try {
-      payload = JSON.parse(rawBody.toString("utf8"));
+      payload = parseWooviPayload(rawBody);
     } catch {
       return res.status(400).send("JSON inválido");
     }
 
-    // Ao registrar um webhook, a Woovi envia exatamente um payload de teste
-    // contendo somente data_criacao e event. A documentação exige HTTP 200
-    // com corpo vazio. Nenhum evento financeiro é processado neste caminho.
+    // Ao registrar o endpoint, a Woovi envia um payload de teste contendo
+    // data_criacao, evento="teste_webhook" e event. Esse caminho apenas confirma
+    // disponibilidade com HTTP 200 e nunca processa uma cobrança.
     if (isWooviRegistrationTest(payload)) {
       return res.status(200).send("");
     }
