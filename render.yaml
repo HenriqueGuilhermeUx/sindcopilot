@@ -3,7 +3,7 @@ services:
     name: sindcopilot
     runtime: node
     plan: starter
-    buildCommand: npm ci --include=dev && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
@@ -36,7 +36,7 @@ services:
     runtime: node
     plan: starter
     schedule: "0 11 * * *"
-    buildCommand: npm ci --include=dev && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm run cron:compliance
     envVars:
       - key: NODE_VERSION
