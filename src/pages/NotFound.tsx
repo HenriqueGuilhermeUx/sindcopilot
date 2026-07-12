@@ -1,0 +1,2 @@
+import { Button } from "@/components/ui/button";import { useLocation } from "wouter";
+export default function NotFound(){const[,setLocation]=useLocation();return <div className="min-h-[60vh] grid place-items-center text-center"><div><p className="text-6xl font-bold text-primary">404</p><h1 className="mt-4 text-2xl font-bold">Página não encontrada</h1><Button className="mt-6" onClick={()=>setLocation("/")}>Voltar ao início</Button></div></div>}

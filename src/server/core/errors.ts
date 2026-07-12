@@ -1,0 +1,2 @@
+import { TRPCError } from "@trpc/server";
+export const notFound=(message="Registro não encontrado")=>new TRPCError({code:"NOT_FOUND",message});export const forbidden=(message="Você não tem permissão para esta ação")=>new TRPCError({code:"FORBIDDEN",message});export const badRequest=(message:string)=>new TRPCError({code:"BAD_REQUEST",message});export const serviceUnavailable=(message="Serviço temporariamente indisponível")=>new TRPCError({code:"INTERNAL_SERVER_ERROR",message});

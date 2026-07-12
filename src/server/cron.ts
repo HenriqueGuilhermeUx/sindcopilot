@@ -1,0 +1,1 @@
+import "dotenv/config";import { runComplianceSweep } from "./services/compliance";runComplianceSweep().then(result=>{console.log("Compliance concluído",result);process.exit(0)}).catch(error=>{console.error(error);process.exit(1)});

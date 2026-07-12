@@ -1,0 +1,12 @@
+import * as React from "react";
+import * as D from "@radix-ui/react-dialog";
+import { X } from "lucide-react";
+import { cn } from "@/lib/utils";
+export const Dialog=D.Root; export const DialogTrigger=D.Trigger; export const DialogClose=D.Close;
+export const DialogPortal=D.Portal;
+export const DialogOverlay=React.forwardRef<React.ElementRef<typeof D.Overlay>,React.ComponentPropsWithoutRef<typeof D.Overlay>>(({className,...p},ref)=><D.Overlay ref={ref} className={cn("fixed inset-0 z-50 bg-black/60 data-[state=open]:animate-in data-[state=closed]:animate-out",className)} {...p}/>); DialogOverlay.displayName="DialogOverlay";
+export const DialogContent=React.forwardRef<React.ElementRef<typeof D.Content>,React.ComponentPropsWithoutRef<typeof D.Content>>(({className,children,...p},ref)=><DialogPortal><DialogOverlay/><D.Content ref={ref} className={cn("fixed left-1/2 top-1/2 z-50 grid w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl border bg-background p-6 shadow-xl",className)} {...p}>{children}<D.Close className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100"><X className="h-4 w-4"/><span className="sr-only">Fechar</span></D.Close></D.Content></DialogPortal>); DialogContent.displayName="DialogContent";
+export const DialogHeader=({className,...p}:React.HTMLAttributes<HTMLDivElement>)=><div className={cn("flex flex-col space-y-1.5 text-center sm:text-left",className)} {...p}/>;
+export const DialogFooter=({className,...p}:React.HTMLAttributes<HTMLDivElement>)=><div className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",className)} {...p}/>;
+export const DialogTitle=React.forwardRef<React.ElementRef<typeof D.Title>,React.ComponentPropsWithoutRef<typeof D.Title>>(({className,...p},ref)=><D.Title ref={ref} className={cn("text-lg font-semibold",className)} {...p}/>); DialogTitle.displayName="DialogTitle";
+export const DialogDescription=React.forwardRef<React.ElementRef<typeof D.Description>,React.ComponentPropsWithoutRef<typeof D.Description>>(({className,...p},ref)=><D.Description ref={ref} className={cn("text-sm text-muted-foreground",className)} {...p}/>); DialogDescription.displayName="DialogDescription";

@@ -1,0 +1,49 @@
+name: Finalize repository bootstrap
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.bootstrap/**'
+      - 'package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reconstruct large source files
+        run: |
+          test -d .bootstrap || { echo "Bootstrap already finalized"; exit 0; }
+          mkdir -p src/server/services supabase/migrations
+          cat .bootstrap/router.* > src/server/router.ts
+          cat .bootstrap/data.* > src/server/services/data.ts
+          cat .bootstrap/migration.* > supabase/migrations/0001_initial.sql
+          rm -rf .bootstrap
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Generate package lock
+        run: npm install --package-lock-only --ignore-scripts
+
+      - name: Commit finalized application
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "Nothing to finalize"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: finalize application source and lockfile"
+          git push

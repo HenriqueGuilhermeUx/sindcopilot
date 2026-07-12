@@ -1,0 +1,32 @@
+stripeStatus,maxCondominiums:ent.limits.maxCondominiums,maxAssistants:ent.limits.maxAssistants,limits:ent.limits,usage:ent.usage,stripeCustomerId:profile.stripeCustomerId,stripeSubscriptionId:profile.stripeSubscriptionId};
+    }),
+    checkout: ownerProcedure.input(z.object({plan:z.enum(["starter","pro"])})).mutation(async({ctx,input})=>{const session=await createCheckoutSession(ctx.user.id,ctx.user.email||"",ctx.user.name,input.plan);return{url:session.url}}),
+    portal: ownerProcedure.mutation(async({ctx})=>{const profile:any=await db.getProfile(ctx.user.id);if(!profile.stripeCustomerId)throw badRequest("Nenhuma assinatura encontrada");const session=await createPortalSession(profile.stripeCustomerId);return{url:session.url}}),
+  }),
+
+  assistant: router({
+    inviteInfo: publicProcedure.input(z.object({token:z.string().min(20)})).query(({input})=>db.getInvite(input.token)),
+    accept: protectedProcedure.input(z.object({token:z.string().min(20)})).mutation(async({ctx,input})=>{await db.acceptInvite(input.token,ctx.user.id,ctx.user.email);return{success:true}}),
+    list: ownerProcedure.query(({ctx})=>db.listAssistants(ctx.user.id)),
+    invite: ownerProcedure.input(z.object({email:z.string().email(),name:z.string().max(200).optional(),phone:z.string().max(30).optional(),role:z.enum(["assistant","viewer"]).default("assistant"),allowedCondominiumIds:z.array(z.number().int().positive()).optional()})).mutation(async({ctx,input})=>{
+      const current=await db.countActiveAssistants(ctx.user.id);await assertAssistantLimit(ctx.user.id,current);
+      if(input.allowedCondominiumIds)for(const id of input.allowedCondominiumIds)await db.assertCondominium(access(ctx),id);
+      const token=nanoid(40);const id=await db.createAssistant(ctx.user.id,{...input,token});const inviteUrl=`${ENV.APP_URL}/convite/${token}`;
+      await sendEmail({to:input.email,subject:"Convite para o SindCopilot",html:`<h2>Você foi convidado para o SindCopilot</h2><p>${escapeHtml(ctx.user.name||"Um síndico profissional")} convidou você para colaborar.</p><p><a href="${inviteUrl}">Aceitar convite</a></p><p>O convite expira em 7 dias.</p>`}).catch(e=>console.error("[Invite email]",e));
+      return{id,token,inviteUrl};
+    }),
+    update: ownerProcedure.input(z.object({id:z.number(),role:z.enum(["assistant","viewer"]).optional(),allowedCondominiumIds:z.array(z.number()).nullable().optional()})).mutation(async({ctx,input})=>{const{id,...rest}=input;await db.updateAssistant(ctx.user.id,id,rest);return{success:true}}),
+    revoke: ownerProcedure.input(z.object({id:z.number()})).mutation(async({ctx,input})=>{await db.updateAssistant(ctx.user.id,input.id,{status:"revoked"});return{success:true}}),
+    delete: ownerProcedure.input(z.object({id:z.number()})).mutation(async({ctx,input})=>{await db.deleteAssistant(ctx.user.id,input.id);return{success:true}}),
+  }),
+
+  condominium: router({
+    list: protectedProcedure.query(({ctx})=>db.listCondominiums(access(ctx))),
+    get: protectedProcedure.input(z.object({id:z.number()})).query(({ctx,input})=>db.assertCondominium(access(ctx),input.id)),
+    create: writeProcedure.input(condoInput).mutation(async({ctx,input})=>{const count=await db.countCondominiums(ctx.user.accountOwnerId);await assertCondoLimit(ctx.user,count);const id=await db.createCondominium(ctx.user.accountOwnerId,input);await db.createActivity(access(ctx),{condominiumId:id,type:"condominium_added",title:`Condomínio "${input.name}" cadastrado`});return{id}}),
+    update: writeProcedure.input(condoInput.partial().extend({id:z.number(),status:z.enum(["active","inactive"]).optional()})).mutation(async({ctx,input})=>{const{id,...rest}=input;await db.updateCondominium(access(ctx),id,rest);return{success:true}}),
+    delete: writeProcedure.input(z.object({id:z.number()})).mutation(async({ctx,input})=>{await db.deleteCondominium(access(ctx),input.id);return{success:true}}),
+  }),
+
+  unit: router({
+    list: protectedProcedure.input(z.object({condominiumId:z.number

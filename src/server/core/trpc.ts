@@ -1,0 +1,4 @@
+import { initTRPC, TRPCError } from "@trpc/server";
+import superjson from "superjson";
+import type { TrpcContext } from "./context";
+const t=initTRPC.context<TrpcContext>().create({transformer:superjson});export const router=t.router;export const publicProcedure=t.procedure;const requireUser=t.middleware(({ctx,next})=>{if(!ctx.user)throw new TRPCError({code:"UNAUTHORIZED",message:"Faça login para continuar"});return next({ctx:{...ctx,user:ctx.user}})});export const protectedProcedure=t.procedure.use(requireUser);export const ownerProcedure=protectedProcedure.use(({ctx,next})=>{if(ctx.user.accountRole!=="owner")throw new TRPCError({code:"FORBIDDEN",message:"Somente o titular pode realizar esta ação"});return next({ctx})});export const writeProcedure=protectedProcedure.use(({ctx,next})=>{if(ctx.user.accountRole==="viewer")throw new TRPCError({code:"FORBIDDEN",message:"Seu acesso é somente leitura"});return next({ctx})});

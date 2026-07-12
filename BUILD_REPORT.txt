@@ -1,0 +1,10 @@
+SindCopilot Independente — Relatório de validação
+
+- npm test: 4 arquivos, 11 testes aprovados
+- npm run typecheck: aprovado
+- npm run build: aprovado
+- npm audit --audit-level=low: 0 vulnerabilidades conhecidas
+- inicialização de produção: aprovada
+- GET /api/health: {"status":"ok","service":"SindCopilot","version":"1.0.0"}
+
+Observação: testes externos reais de Supabase, OpenAI, Stripe, Resend e Render dependem das credenciais do proprietário e devem seguir DEPLOY_CHECKLIST.md.

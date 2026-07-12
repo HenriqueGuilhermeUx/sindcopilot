@@ -1,0 +1,78 @@
+import { supabaseAdmin } from "../core/supabase";
+import { forbidden, notFound, serviceUnavailable } from "../core/errors";
+import type { ContextUser } from "../core/context";
+
+export type Access = Pick<ContextUser, "id" | "accountOwnerId" | "accountRole" | "allowedCondominiumIds">;
+
+function camelKey(key: string) { return key.replace(/_([a-z])/g, (_, c) => c.toUpperCase()); }
+export function camel<T = any>(value: any): T {
+  if (Array.isArray(value)) return value.map(camel) as T;
+  if (value && typeof value === "object" && !(value instanceof Date)) {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [camelKey(k), camel(v)])) as T;
+  }
+  return value as T;
+}
+
+function throwDb(error: any): never {
+  console.error("[Database]", error);
+  throw serviceUnavailable(error?.message || "Erro no banco de dados");
+}
+
+export async function getProfile(userId: string) {
+  const { data, error } = await supabaseAdmin.from("users").select("*").eq("id", userId).single();
+  if (error) throwDb(error);
+  return camel(data);
+}
+
+export async function updateProfile(userId: string, input: Record<string, unknown>) {
+  const map: Record<string, string> = {
+    name: "name", phone: "phone", cpf: "cpf", creci: "creci", company: "company",
+    profileCompleted: "profile_completed", lgpdConsentAt: "lgpd_consent_at",
+    lgpdConsentVersion: "lgpd_consent_version", termsAcceptedAt: "terms_accepted_at",
+  };
+  const payload: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(input)) if (map[key]) payload[map[key]] = value instanceof Date ? value.toISOString() : value;
+  const { error } = await supabaseAdmin.from("users").update(payload).eq("id", userId);
+  if (error) throwDb(error);
+}
+
+export async function listCondominiums(access: Access) {
+  let query = supabaseAdmin.from("condominiums").select("*").eq("user_id", access.accountOwnerId).order("name");
+  if (access.allowedCondominiumIds?.length) query = query.in("id", access.allowedCondominiumIds);
+  const { data, error } = await query;
+  if (error) throwDb(error);
+  return camel(data || []);
+}
+
+export async function assertCondominium(access: Access, condominiumId: number, write = false) {
+  if (write && access.accountRole === "viewer") throw forbidden("Seu acesso é somente leitura");
+  const { data, error } = await supabaseAdmin.from("condominiums").select("*").eq("id", condominiumId).eq("user_id", access.accountOwnerId).maybeSingle();
+  if (error) throwDb(error);
+  if (!data) throw notFound("Condomínio não encontrado");
+  if (access.allowedCondominiumIds?.length && !access.allowedCondominiumIds.includes(Number(condominiumId))) throw forbidden();
+  return camel(data);
+}
+
+export async function countCondominiums(ownerId: string) {
+  const { count, error } = await supabaseAdmin.from("condominiums").select("id", { count: "exact", head: true }).eq("user_id", ownerId);
+  if (error) throwDb(error);
+  return count || 0;
+}
+
+export async function createCondominium(ownerId: string, input: Record<string, unknown>) {
+  const payload = {
+    user_id: ownerId, name: input.name, cnpj: input.cnpj || null, address: input.address || null,
+    city: input.city || null, state: input.state || null, zip_code: input.zipCode || null,
+    phone: input.phone || null, email: input.email || null, notes: input.notes || null,
+  };
+  const { data, error } = await supabaseAdmin.from("condominiums").insert(payload).select("id").single();
+  if (error) throwDb(error);
+  return Number(data.id);
+}
+
+export async function updateCondominium(access: Access, id: number, input: Record<string, unknown>) {
+  await assertCondominium(access, id, true);
+  const payload: Record<string, unknown> = {};
+  const keys: Record<string, string> = { name:"name",cnpj:"cnpj",address:"address",city:"city",state:"state",zipCode:"zip_code",phone:"phone",email:"email",notes:"notes",status:"status" };
+  for (const [k,v] of Object.entries(input)) if (keys[k]) payload[keys[k]] = v;
+  const { error } = await supabaseAdmin.from("cond
