@@ -7,22 +7,23 @@ export type Entitlements = {
   effectivePlan: PlanKey;
   storedPlan: "free" | "starter" | "pro" | "scale";
   trialEndsAt: string | null;
-  stripeStatus: string | null;
+  wooviStatus: string | null;
   limits: typeof PLANS[PlanKey];
   usage: { ocrCount: number; aiCount: number; noticesCount: number; storageBytes: number };
 };
 
 export async function getEntitlements(ownerId: string): Promise<Entitlements> {
-  const { data: user, error } = await supabaseAdmin.from("users").select("plan,trial_ends_at,stripe_status,storage_bytes").eq("id", ownerId).single();
+  const { data: user, error } = await supabaseAdmin.from("users").select("plan,trial_ends_at,woovi_status,woovi_current_period_end,storage_bytes").eq("id", ownerId).single();
   if (error) throw serviceUnavailable(error.message);
   const storedPlan = (user.plan || "free") as Entitlements["storedPlan"];
-  const paidActive = storedPlan !== "free" && ["active", "trialing"].includes(user.stripe_status || "");
+  const paidUntil = user.woovi_current_period_end ? new Date(user.woovi_current_period_end) : null;
+  const paidActive = storedPlan !== "free" && user.woovi_status === "active" && !!paidUntil && paidUntil > new Date();
   const trialActive = storedPlan === "free" && user.trial_ends_at && new Date(user.trial_ends_at) > new Date();
   const effectivePlan: PlanKey = paidActive ? storedPlan : trialActive ? "trial" : "free";
   const periodStart = new Date(); periodStart.setUTCDate(1); periodStart.setUTCHours(0,0,0,0);
   const { data: usage } = await supabaseAdmin.from("usage_monthly").select("*").eq("user_id", ownerId).eq("period_start", periodStart.toISOString().slice(0,10)).maybeSingle();
   return {
-    effectivePlan, storedPlan, trialEndsAt: user.trial_ends_at || null, stripeStatus: user.stripe_status || null,
+    effectivePlan, storedPlan, trialEndsAt: user.trial_ends_at || null, wooviStatus: user.woovi_status || null,
     limits: PLANS[effectivePlan],
     usage: { ocrCount: usage?.ocr_count || 0, aiCount: usage?.ai_count || 0, noticesCount: usage?.notices_count || 0, storageBytes: Number(user.storage_bytes || 0) },
   };
