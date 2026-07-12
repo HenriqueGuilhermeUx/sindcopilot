@@ -1,83 +1,56 @@
 # SindCopilot — versão independente
 
-SaaS para síndicos profissionais administrarem vários condomínios em uma única operação. Esta versão não depende do Manus: autenticação, banco, arquivos, IA e cobrança usam serviços controlados pela própria aplicação.
-
-## O que está incluído
-
-- Landing page, cadastro, login por senha e link mágico.
-- Teste gratuito de 7 dias sem cartão.
-- Dashboard multi-condomínio.
-- Condomínios, unidades, moradores e proprietários.
-- Documentos privados em Supabase Storage.
-- OCR de notas fiscais, recibos, boletos e ordens de serviço.
-- Indexação de convenções, regimentos, atas, contratos e laudos.
-- Busca semântica com `pgvector` e referências por documento/página.
-- Assistente de convenções e regimentos.
-- Geração de minutas para revisão humana.
-- Agenda de compliance com recorrência e rotina diária.
-- CRM privado de fornecedores.
-- Ajudantes com convite, acesso de edição ou somente leitura.
-- Relatórios em PDF.
-- Stripe para assinaturas Starter e Pro.
-- Limites mensais de IA, OCR, minutas, armazenamento e número de condomínios.
-- Isolamento de dados por titular e permissões por condomínio.
+SaaS para síndicos profissionais administrarem vários condomínios em uma única operação. Esta versão não depende do Manus: autenticação, banco, arquivos, IA e cobrança são controlados pela própria aplicação.
 
 ## Arquitetura
 
 - **Frontend:** React 19, Vite, Tailwind CSS e tRPC.
-- **Backend:** Node.js 20+, Express 5 e tRPC.
+- **Backend:** Node.js, Express e tRPC.
 - **Auth, banco e arquivos:** Supabase.
 - **IA:** OpenAI Responses API e Embeddings API.
-- **Cobrança:** Stripe Checkout, Billing Portal e webhooks.
-- **Hospedagem recomendada:** Render Web Service + Render Cron Job.
+- **Cobrança:** assinaturas Pix recorrentes pela Woovi.
+- **Hospedagem:** Render Web Service + Render Cron Job.
 
-## 1. Rodar localmente
+## Recursos
 
-### Requisitos
+- Teste gratuito de 7 dias.
+- Dashboard multi-condomínio.
+- Condomínios, unidades, moradores e proprietários.
+- Documentos privados no Supabase Storage.
+- OCR de notas fiscais, recibos, boletos e ordens de serviço.
+- Indexação de convenções, regimentos, atas, contratos e laudos.
+- Busca semântica com referências por documento e página.
+- Assistente de convenções e regimentos.
+- Geração de minutas para revisão humana.
+- Agenda de compliance com recorrência e rotina diária.
+- CRM privado de fornecedores.
+- Ajudantes com acesso de edição ou somente leitura.
+- Relatórios em PDF.
+- Planos Starter e Pro cobrados por Pix via Woovi.
+- Limites mensais de IA, OCR, minutas e armazenamento.
 
-- Node.js 20 ou superior.
-- Um projeto Supabase.
-- Uma chave da OpenAI para OCR e assistente.
-- Uma conta Stripe para testar assinaturas.
+## 1. Instalação local
 
-### Instalação
+Requisitos: Node.js 20+, projeto Supabase, chave OpenAI e AppID de API da Woovi.
 
 ```bash
-npm install
+npm install --include=dev
 cp .env.example .env
-```
-
-Preencha o arquivo `.env` e depois execute:
-
-```bash
 npm run dev
 ```
 
-Frontend e backend serão iniciados juntos. A URL local padrão é exibida pelo Vite.
+## 2. Supabase
 
-## 2. Preparar o Supabase
-
-1. Crie um novo projeto no Supabase.
-2. Abra **SQL Editor**.
-3. Copie e execute todo o arquivo:
+No **SQL Editor**, execute nesta ordem:
 
 ```text
 supabase/migrations/0001_initial.sql
+supabase/migrations/0002_replace_stripe_with_woovi.sql
 ```
 
-A migration cria:
+A segunda migration é idempotente e também atualiza instalações que tenham usado a versão anterior.
 
-- tabelas e relacionamentos;
-- índices e cascatas;
-- extensão `pgvector`;
-- funções atômicas de consumo e armazenamento;
-- trigger de criação do perfil;
-- bucket privado `documents`;
-- políticas básicas de RLS.
-
-### Configurar autenticação
-
-No Supabase, abra **Authentication → URL Configuration** e configure:
+Em **Authentication → URL Configuration**:
 
 ```text
 Site URL: https://SEU-DOMINIO
@@ -88,21 +61,19 @@ http://localhost:5173/dashboard
 http://localhost:5173/convite/**
 ```
 
-Em **Authentication → Providers → Email**, deixe Email habilitado. Para produção, configure SMTP próprio para não depender do envio padrão do Supabase.
+Variáveis:
 
-### Chaves necessárias
+```env
+SUPABASE_URL=https://SEU-PROJETO.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=...
+VITE_SUPABASE_URL=https://SEU-PROJETO.supabase.co
+VITE_SUPABASE_ANON_KEY=...
+SUPABASE_STORAGE_BUCKET=documents
+```
 
-Em **Project Settings → API**, copie:
+A `service role` deve existir somente no servidor.
 
-- Project URL → `SUPABASE_URL` e `VITE_SUPABASE_URL`;
-- anon/public key → `VITE_SUPABASE_ANON_KEY`;
-- service role key → `SUPABASE_SERVICE_ROLE_KEY`.
-
-A chave `service role` deve existir apenas no servidor. Nunca coloque essa chave em uma variável `VITE_*`.
-
-## 3. Configurar OpenAI
-
-Crie uma chave e preencha:
+## 3. OpenAI
 
 ```env
 OPENAI_API_KEY=sk-...
@@ -110,39 +81,59 @@ OPENAI_MODEL=gpt-5-mini
 OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 ```
 
-A aplicação envia imagens ou PDFs para extração estruturada, gera embeddings para os documentos jurídicos e recupera apenas os trechos relevantes antes de responder.
+## 4. Woovi
 
-## 4. Configurar Stripe
-
-Preencha:
+Na Woovi, crie uma integração do tipo **API** e copie o AppID.
 
 ```env
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
+WOOVI_API_URL=https://api.woovi.com
+WOOVI_APP_ID=SEU_APP_ID
+WOOVI_WEBHOOK_AUTH_TOKEN=UM_SEGREDO_FORTE_OPCIONAL
 ```
 
-No Stripe, crie um webhook apontando para:
+A aplicação cria assinaturas mensais em `/api/v1/subscriptions`, usando o valor do plano e os dados do perfil. Nome, CPF e telefone precisam estar preenchidos.
+
+Configure o webhook:
 
 ```text
-https://SEU-DOMINIO/api/stripe/webhook
+URL: https://SEU-DOMINIO/api/woovi/webhook
+Eventos: OPENPIX:CHARGE_COMPLETED e OPENPIX:CHARGE_EXPIRED
+Método: POST
 ```
 
-Assine estes eventos:
+A aplicação valida `x-webhook-signature`. Caso defina `WOOVI_WEBHOOK_AUTH_TOKEN`, configure o mesmo valor no header `Authorization` do webhook.
+
+O plano só é ativado depois da confirmação de pagamento e da validação do valor recebido.
+
+## 5. Render
+
+O `render.yaml` cria o Web Service e o Cron Job de compliance.
+
+O build usa:
 
 ```text
-checkout.session.completed
-customer.subscription.created
-customer.subscription.updated
-customer.subscription.deleted
-invoice.paid
-invoice.payment_failed
+npm install --include=dev && npm run build
 ```
 
-Os produtos e preços são criados dinamicamente no Checkout conforme os valores definidos em `src/shared/plans.ts`.
+Isso instala Vite, TypeScript e tsup mesmo com `NODE_ENV=production`.
 
-## 5. E-mail de convites e compliance
+Variáveis principais do Web Service:
 
-O envio por Resend é opcional. Sem Resend, o convite continua sendo criado e o link é copiado para o síndico compartilhar manualmente.
+```env
+APP_URL=https://SEU-DOMINIO
+SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
+OPENAI_API_KEY=...
+WOOVI_APP_ID=...
+WOOVI_API_URL=https://api.woovi.com
+WOOVI_WEBHOOK_AUTH_TOKEN=...
+```
+
+## 6. E-mail
+
+Resend é opcional:
 
 ```env
 RESEND_API_KEY=re_...
@@ -150,76 +141,26 @@ EMAIL_FROM=SindCopilot <noreply@seudominio.com>
 CONTACT_EMAIL=contato@seudominio.com
 ```
 
-Para entrega em produção, valide o domínio remetente no provedor de e-mail.
-
-## 6. Deploy no Render
-
-O arquivo `render.yaml` contém:
-
-- um Web Service para frontend e backend;
-- um Cron Job diário para compliance.
-
-### Passos
-
-1. Envie este projeto para um repositório GitHub.
-2. No Render, selecione **New → Blueprint**.
-3. Escolha o repositório.
-4. Preencha todas as variáveis marcadas como `sync: false`.
-5. No Web Service, defina também:
-
-```env
-APP_URL=https://SEU-DOMINIO
-SUPABASE_STORAGE_BUCKET=documents
-OPENAI_MODEL=gpt-5-mini
-OPENAI_EMBEDDING_MODEL=text-embedding-3-small
-RESEND_API_KEY=...
-EMAIL_FROM=...
-CONTACT_EMAIL=...
-```
-
-6. Use o mesmo `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` no Cron Job.
-7. Após o primeiro deploy, atualize as URLs permitidas no Supabase e o endpoint do Stripe.
-
-**Importante:** as variáveis `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` precisam existir durante o build do frontend.
-
-## 7. Comandos de qualidade
+## 7. Validação
 
 ```bash
 npm run typecheck
 npm test
 npm run build
-npm audit
 ```
 
-Estado validado deste pacote:
+## 8. Segurança
 
-- TypeScript: aprovado.
-- Testes: 11 aprovados.
-- Build de produção: aprovado.
-- Auditoria npm: 0 vulnerabilidades conhecidas.
-
-## 8. Segurança aplicada
-
-- Cada operação do backend valida o titular da conta.
-- Unidades são verificadas por relacionamento com o condomínio.
-- Ajudantes podem ser limitados a condomínios específicos.
-- Perfil `viewer` não altera dados.
-- Arquivos ficam em bucket privado e são abertos por URL temporária.
-- Tipos de arquivo e tamanho máximo são validados.
-- Webhooks Stripe são verificados e processados com idempotência.
-- Uso de IA e armazenamento é controlado por plano.
-- Textos encontrados em documentos são tratados como dados não confiáveis, não como instruções para a IA.
+- Isolamento de dados por titular e condomínio.
+- Perfil `viewer` sem escrita.
+- Bucket privado e URLs temporárias.
+- Webhook Woovi validado por assinatura.
+- Eventos processados com idempotência.
+- Valor da cobrança comparado com o plano antes da ativação.
+- Limites de uso de IA e armazenamento por plano.
 
 Leia também `SECURITY.md`.
 
-## 9. Observações jurídicas e operacionais
+## 9. Aviso
 
-O assistente não substitui advogado, administradora, contador, engenheiro ou empresa técnica. Toda notificação, advertência ou multa é salva como **minuta para revisão humana**. O usuário continua responsável pela correção dos documentos cadastrados, decisões tomadas e cumprimento das obrigações.
-
-Antes de uma divulgação ampla, faça um beta com poucos síndicos e valide:
-
-- qualidade do OCR em documentos reais;
-- referências de páginas e cláusulas;
-- entregabilidade dos e-mails;
-- custo médio de IA por usuário;
-- comportamento de renovação e cancelamento no Stripe.
+O assistente não substitui advogado, administradora, contador, engenheiro ou empresa técnica. Toda notificação, advertência ou multa é uma **minuta para revisão humana**.
