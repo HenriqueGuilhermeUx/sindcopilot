@@ -15,20 +15,60 @@ const app = express();
 app.set("trust proxy", 1);
 app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: "cross-origin" } }));
 
+function isWooviRegistrationTest(payload: unknown): payload is { data_criacao: string; event: string } {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return false;
+
+  const body = payload as Record<string, unknown>;
+  const keys = Object.keys(body).sort();
+
+  return (
+    keys.length === 2 &&
+    keys[0] === "data_criacao" &&
+    keys[1] === "event" &&
+    typeof body.data_criacao === "string" &&
+    typeof body.event === "string" &&
+    body.event.startsWith("OPENPIX:")
+  );
+}
+
+// Health-style response for providers or operators checking the webhook URL.
+app.get("/api/woovi/webhook", (_req, res) => res.status(200).send(""));
+app.head("/api/woovi/webhook", (_req, res) => res.status(200).end());
+
 app.post("/api/woovi/webhook", express.raw({ type: "application/json" }), async (req, res) => {
   try {
-    const rawBody = req.body as Buffer;
+    const rawBody = Buffer.isBuffer(req.body)
+      ? req.body
+      : Buffer.from(typeof req.body === "string" ? req.body : JSON.stringify(req.body || {}));
+
+    let payload: unknown;
+    try {
+      payload = JSON.parse(rawBody.toString("utf8"));
+    } catch {
+      return res.status(400).send("JSON inválido");
+    }
+
+    // Ao registrar um webhook, a Woovi envia exatamente um payload de teste
+    // contendo somente data_criacao e event. A documentação exige HTTP 200
+    // com corpo vazio. Nenhum evento financeiro é processado neste caminho.
+    if (isWooviRegistrationTest(payload)) {
+      return res.status(200).send("");
+    }
+
     const signature = req.headers["x-webhook-signature"];
     if (typeof signature !== "string") return res.status(400).send("Assinatura Woovi ausente");
     if (!verifyWooviWebhook(rawBody, signature)) return res.status(401).send("Assinatura Woovi inválida");
+
     if (ENV.WOOVI_WEBHOOK_AUTH_TOKEN) {
       const authorization = req.headers.authorization || "";
-      const accepted = authorization === ENV.WOOVI_WEBHOOK_AUTH_TOKEN || authorization === `Bearer ${ENV.WOOVI_WEBHOOK_AUTH_TOKEN}`;
+      const accepted =
+        authorization === ENV.WOOVI_WEBHOOK_AUTH_TOKEN ||
+        authorization === `Bearer ${ENV.WOOVI_WEBHOOK_AUTH_TOKEN}`;
       if (!accepted) return res.status(401).send("Autorização do webhook inválida");
     }
-    const payload = JSON.parse(rawBody.toString("utf8"));
+
     await processWooviEvent(payload);
-    return res.json({ received: true });
+    return res.status(200).json({ received: true });
   } catch (error: any) {
     console.error("[Woovi webhook]", error);
     return res.status(400).send(error?.message || "Webhook inválido");
