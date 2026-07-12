@@ -3,7 +3,7 @@ services:
     name: sindcopilot
     runtime: node
     plan: starter
-    buildCommand: npm install && npm run build
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
@@ -23,9 +23,11 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
-      - key: STRIPE_SECRET_KEY
+      - key: WOOVI_APP_ID
         sync: false
-      - key: STRIPE_WEBHOOK_SECRET
+      - key: WOOVI_API_URL
+        value: https://api.woovi.com
+      - key: WOOVI_WEBHOOK_AUTH_TOKEN
         sync: false
       - key: CRON_SECRET
         generateValue: true
@@ -34,7 +36,7 @@ services:
     runtime: node
     plan: starter
     schedule: "0 11 * * *"
-    buildCommand: npm install && npm run build
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: npm run cron:compliance
     envVars:
       - key: NODE_VERSION
