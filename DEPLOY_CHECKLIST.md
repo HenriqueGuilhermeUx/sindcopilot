@@ -1,75 +1,63 @@
 # Checklist de publicação — SindCopilot
 
+## GitHub e Render
+
+- [ ] Branch `main` selecionada.
+- [ ] Build command: `npm install --include=dev && npm run build`.
+- [ ] Start command: `npm start`.
+- [ ] Health check: `/api/health`.
+- [ ] Node 22 configurado.
+
 ## Supabase
 
 - [ ] Projeto criado.
-- [ ] `supabase/migrations/0001_initial.sql` executado sem erros.
-- [ ] Tabelas e bucket `documents` criados.
-- [ ] Email provider habilitado.
-- [ ] Site URL configurada.
-- [ ] Redirect URL `/dashboard` configurada.
-- [ ] Redirect URL `/convite/**` configurada.
-- [ ] SMTP próprio configurado para produção.
-- [ ] `SUPABASE_SERVICE_ROLE_KEY` mantida apenas no backend.
+- [ ] `0001_initial.sql` executada.
+- [ ] `0002_replace_stripe_with_woovi.sql` executada.
+- [ ] URLs de autenticação configuradas.
+- [ ] `SUPABASE_URL` configurada.
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` configurada somente no servidor.
+- [ ] `VITE_SUPABASE_URL` configurada no build.
+- [ ] `VITE_SUPABASE_ANON_KEY` configurada no build.
 
 ## OpenAI
 
 - [ ] `OPENAI_API_KEY` configurada.
-- [ ] Limite financeiro da conta configurado.
-- [ ] OCR testado com imagem.
-- [ ] OCR testado com PDF digital.
-- [ ] Fallback testado com PDF escaneado.
+- [ ] OCR testado com imagem e PDF.
 - [ ] Convenção indexada e consultada com indicação da página.
 
-## Stripe
+## Woovi
 
-- [ ] Chave secreta de teste configurada.
-- [ ] Webhook criado.
-- [ ] Eventos de assinatura selecionados.
-- [ ] `STRIPE_WEBHOOK_SECRET` configurado.
-- [ ] Checkout Starter testado.
-- [ ] Checkout Pro testado.
-- [ ] Billing Portal testado.
-- [ ] Cancelamento testado.
-- [ ] Falha de pagamento testada.
-- [ ] Depois dos testes, chaves Live configuradas.
+- [ ] Integração do tipo API criada.
+- [ ] `WOOVI_APP_ID` configurado.
+- [ ] `WOOVI_API_URL=https://api.woovi.com`.
+- [ ] Webhook criado para `/api/woovi/webhook`.
+- [ ] Evento `OPENPIX:CHARGE_COMPLETED` habilitado.
+- [ ] Evento `OPENPIX:CHARGE_EXPIRED` habilitado.
+- [ ] `WOOVI_WEBHOOK_AUTH_TOKEN` configurado no Render e no header Authorization do webhook, caso utilizado.
+- [ ] Starter e Pro testados por Pix.
+- [ ] Pagamento confirmado ativa o plano correto.
+- [ ] Cobrança expirada testada.
 
-## Render
+## E-mail e cron
 
-- [ ] Repositório GitHub conectado.
-- [ ] Blueprint `render.yaml` criado.
-- [ ] `APP_URL` preenchida com HTTPS.
-- [ ] Variáveis Supabase do frontend presentes durante o build.
-- [ ] Variáveis Supabase do backend presentes.
-- [ ] `CRON_SECRET` gerado.
-- [ ] Web Service saudável em `/api/health`.
-- [ ] Cron diário executado manualmente uma vez.
-- [ ] Domínio próprio apontado.
-
-## E-mail
-
-- [ ] Domínio remetente validado.
-- [ ] `RESEND_API_KEY` configurada.
-- [ ] `EMAIL_FROM` configurado.
-- [ ] Convite recebido em Gmail e Outlook.
-- [ ] Alerta de compliance recebido.
+- [ ] Resend configurado ou convites manuais testados.
+- [ ] Cron com acesso ao mesmo Supabase.
+- [ ] Rotina de compliance executada manualmente uma vez.
 
 ## Produto
 
 - [ ] Cadastro e confirmação de email testados.
 - [ ] Termos e LGPD registrados.
+- [ ] Perfil com nome, CPF e telefone.
 - [ ] Um segundo usuário não acessa os dados do primeiro.
 - [ ] Ajudante aceita convite.
 - [ ] Viewer não consegue alterar registros.
-- [ ] Arquivo privado não abre sem URL assinada.
-- [ ] Exclusão do documento remove o arquivo.
-- [ ] Limites Free e Trial testados.
+- [ ] Upload, OCR e exclusão de documento testados.
+- [ ] Assistente responde com fonte e página.
 - [ ] PDF exportado corretamente.
-- [ ] Landing revisada no celular.
 
 ## Antes de anunciar
 
-- [ ] Criar conta de suporte com domínio oficial.
 - [ ] Revisar Termos e Política com profissional jurídico.
 - [ ] Criar rotina de backup e recuperação.
 - [ ] Criar monitoramento de erros e disponibilidade.
