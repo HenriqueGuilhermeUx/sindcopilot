@@ -1,50 +1,48 @@
 # Implementação independente concluída
 
-## Substituições realizadas
+## Serviços atuais
 
-| Componente antigo | Componente independente |
+| Função | Serviço |
 |---|---|
-| OAuth/SDK Manus | Supabase Auth |
-| Forge Storage | Supabase Storage privado |
-| Forge/Manus LLM | OpenAI API direta |
-| MySQL sem isolamento integral | Supabase Postgres com relacionamentos, índices e validação no backend |
-| Documentos por URL pública | Chaves privadas e URLs temporárias |
-| Texto jurídico parcial | Extração por página, chunks, embeddings e recuperação semântica |
-| Stripe com estados básicos | Webhooks idempotentes e estados de assinatura |
-| Alertas apenas visuais | Cron diário e registro de entrega |
-| Convite cadastrado sem fluxo | Link de convite, aceitação e papéis assistant/viewer |
+| Autenticação | Supabase Auth |
+| Banco | Supabase PostgreSQL |
+| Arquivos | Supabase Storage privado |
+| OCR e assistente | OpenAI |
+| Assinatura e Pix | Woovi |
+| E-mail | Resend, opcional |
+| Hospedagem | Render |
+
+## Cobrança
+
+- Planos Starter e Pro criam assinaturas pela API Woovi.
+- O cliente é identificado pelo `correlationID` igual ao UUID da conta.
+- A ativação ocorre somente após `OPENPIX:CHARGE_COMPLETED`.
+- O valor recebido é validado contra o valor do plano.
+- Eventos são idempotentes na tabela `woovi_events`.
+- Cobrança expirada pode marcar a conta como inadimplente após o fim do período já pago.
 
 ## Bloqueadores corrigidos
 
 - Acesso entre contas por IDs previsíveis.
 - Alterações e exclusões sem conferir o proprietário.
 - Dependência operacional do Manus.
-- Falta da migration inicial completa.
 - Upload sem validação de tipo e tamanho.
 - Falta de limites de custo para IA.
 - PDFs enviados incorretamente como imagem.
 - Citações jurídicas sem recuperação por página.
-- Mensagem duplicada no histórico do chat.
-- Webhook Stripe sem idempotência persistente.
-- Origem do Checkout fornecida pelo navegador.
+- Build do Render sem Vite/tsup.
+
+## Build do Render
+
+```text
+npm install --include=dev && npm run build
+```
+
+A opção `--include=dev` garante a instalação das ferramentas de build mesmo com `NODE_ENV=production`.
 
 ## Estado técnico
 
-- Build de produção concluído.
-- Typecheck concluído.
-- Oito testes automatizados concluídos.
-- Auditoria npm sem vulnerabilidades conhecidas.
-- Pacote pronto para receber credenciais e ser implantado.
-
-## O que ainda depende do proprietário
-
-A aplicação não pode ser publicada de verdade sem contas e segredos externos. É necessário criar ou informar:
-
-- projeto Supabase;
-- chave OpenAI;
-- conta Stripe;
-- serviço Render;
-- domínio;
-- provedor de email opcional.
-
-Nenhuma credencial real está incluída neste pacote.
+- TypeScript aprovado.
+- 11 testes automatizados aprovados.
+- Build de produção aprovado.
+- Integrações externas aguardam as credenciais do proprietário.
