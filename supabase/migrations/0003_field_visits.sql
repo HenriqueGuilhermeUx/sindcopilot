@@ -41,7 +41,8 @@ create index if not exists field_visit_items_visit_idx
 create index if not exists field_visit_items_status_idx
   on public.field_visit_items(status);
 
-create or replace trigger field_visits_updated_at
+drop trigger if exists field_visits_updated_at on public.field_visits;
+create trigger field_visits_updated_at
   before update on public.field_visits
   for each row execute function public.set_updated_at();
 
