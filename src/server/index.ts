@@ -10,6 +10,7 @@ import { createContext } from "./core/context";
 import { ENV } from "./core/env";
 import { processWooviEvent, verifyWooviWebhook } from "./services/woovi";
 import { runComplianceSweep } from "./services/compliance";
+import { fieldVisitsRouter } from "./visits-api";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -98,13 +99,14 @@ app.use(express.urlencoded({ extended: true, limit: "28mb" }));
 app.use("/api", rateLimit({ windowMs: 60_000, limit: 180, standardHeaders: "draft-7", legacyHeaders: false }));
 app.use("/api/trpc/ai", rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: "draft-7", legacyHeaders: false }));
 
-app.get("/api/health", (_req, res) => res.json({ status: "ok", service: "SindCopilot", version: "1.0.0" }));
+app.get("/api/health", (_req, res) => res.json({ status: "ok", service: "SindCopilot", version: "1.1.0" }));
 app.post("/api/cron/compliance", async (req, res) => {
   if (req.headers.authorization !== `Bearer ${ENV.CRON_SECRET}`) return res.status(401).json({ error: "unauthorized" });
   try { return res.json(await runComplianceSweep()); }
   catch (error: any) { console.error(error); return res.status(500).json({ error: error?.message || "cron failed" }); }
 });
 
+app.use("/api/field-visits", fieldVisitsRouter);
 app.use("/api/trpc", createExpressMiddleware({
   router: appRouter,
   createContext,
