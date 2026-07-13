@@ -1,0 +1,36 @@
+{
+  "name": "SindCopilot — Modo Visita",
+  "short_name": "SindCopilot",
+  "description": "Checklist, ocorrências, fotos e pendências para síndicos em campo.",
+  "lang": "pt-BR",
+  "start_url": "/visitas",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f8fafc",
+  "theme_color": "#0f2f49",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Iniciar visita",
+      "short_name": "Visita",
+      "description": "Abrir o modo de campo",
+      "url": "/visitas",
+      "icons": [{ "src": "/pwa-icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Painel",
+      "url": "/dashboard",
+      "icons": [{ "src": "/pwa-icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
+  ]
+}

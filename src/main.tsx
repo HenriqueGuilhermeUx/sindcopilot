@@ -9,6 +9,39 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import App from "@/App";
 import "@/index.css";
 
-const queryClient=new QueryClient({defaultOptions:{queries:{staleTime:30_000,retry:1},mutations:{retry:0}}});
-const trpcClient=trpc.createClient({links:[httpLink({url:"/api/trpc",transformer:superjson,headers:async()=>{const{data}=await supabase.auth.getSession();return data.session?.access_token?{authorization:`Bearer ${data.session.access_token}`}:{}}})]});
-ReactDOM.createRoot(document.getElementById("root")!).render(<React.StrictMode><trpc.Provider client={trpcClient} queryClient={queryClient}><QueryClientProvider client={queryClient}><AuthProvider><App/></AuthProvider></QueryClientProvider></trpc.Provider></React.StrictMode>);
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 30_000, retry: 1 }, mutations: { retry: 0 } },
+});
+
+const trpcClient = trpc.createClient({
+  links: [
+    httpLink({
+      url: "/api/trpc",
+      transformer: superjson,
+      headers: async () => {
+        const { data } = await supabase.auth.getSession();
+        return data.session?.access_token
+          ? { authorization: `Bearer ${data.session.access_token}` }
+          : {};
+      },
+    }),
+  ],
+});
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <trpc.Provider client={trpcClient} queryClient={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider><App /></AuthProvider>
+      </QueryClientProvider>
+    </trpc.Provider>
+  </React.StrictMode>,
+);
+
+if ("serviceWorker" in navigator && import.meta.env.PROD) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(error => {
+      console.error("[PWA] Falha ao registrar service worker", error);
+    });
+  });
+}
