@@ -8,6 +8,7 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { appRouter } from "./router";
 import { createContext } from "./core/context";
 import { ENV } from "./core/env";
+import { supabaseAdmin } from "./core/supabase";
 import { processWooviEvent, verifyWooviWebhook } from "./services/woovi";
 import { runComplianceSweep } from "./services/compliance";
 import { fieldVisitsRouter } from "./visits-api";
@@ -18,13 +19,7 @@ app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { poli
 
 function parseWooviPayload(rawBody: Buffer): unknown {
   const firstParse = JSON.parse(rawBody.toString("utf8"));
-
-  // Alguns painéis exibem ou encaminham o corpo como uma string JSON escapada.
-  // Aceitamos uma segunda decodificação somente quando o primeiro resultado é string.
-  if (typeof firstParse === "string") {
-    return JSON.parse(firstParse);
-  }
-
+  if (typeof firstParse === "string") return JSON.parse(firstParse);
   return firstParse;
 }
 
@@ -34,10 +29,8 @@ function isWooviRegistrationTest(payload: unknown): payload is {
   event: string;
 } {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) return false;
-
   const body = payload as Record<string, unknown>;
   const keys = Object.keys(body).sort();
-
   return (
     keys.length === 3 &&
     keys[0] === "data_criacao" &&
@@ -50,7 +43,6 @@ function isWooviRegistrationTest(payload: unknown): payload is {
   );
 }
 
-// Health-style response for providers or operators checking the webhook URL.
 app.get("/api/woovi/webhook", (_req, res) => res.status(200).send(""));
 app.head("/api/woovi/webhook", (_req, res) => res.status(200).end());
 
@@ -67,12 +59,7 @@ app.post("/api/woovi/webhook", express.raw({ type: "application/json" }), async 
       return res.status(400).send("JSON inválido");
     }
 
-    // Ao registrar o endpoint, a Woovi envia um payload de teste contendo
-    // data_criacao, evento="teste_webhook" e event. Esse caminho apenas confirma
-    // disponibilidade com HTTP 200 e nunca processa uma cobrança.
-    if (isWooviRegistrationTest(payload)) {
-      return res.status(200).send("");
-    }
+    if (isWooviRegistrationTest(payload)) return res.status(200).send("");
 
     const signature = req.headers["x-webhook-signature"];
     if (typeof signature !== "string") return res.status(400).send("Assinatura Woovi ausente");
@@ -99,7 +86,50 @@ app.use(express.urlencoded({ extended: true, limit: "28mb" }));
 app.use("/api", rateLimit({ windowMs: 60_000, limit: 180, standardHeaders: "draft-7", legacyHeaders: false }));
 app.use("/api/trpc/ai", rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: "draft-7", legacyHeaders: false }));
 
-app.get("/api/health", (_req, res) => res.json({ status: "ok", service: "SindCopilot", version: "1.1.0" }));
+app.get("/api/health", (_req, res) => res.json({ status: "ok", service: "SindCopilot", version: "1.2.0" }));
+
+app.delete("/api/account", async (req, res) => {
+  try {
+    const authorization = req.headers.authorization || "";
+    const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+    if (!token) return res.status(401).json({ error: "Sessão necessária" });
+
+    const { data: authData, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !authData.user) return res.status(401).json({ error: "Sessão inválida" });
+
+    const userId = authData.user.id;
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from("users")
+      .select("account_owner_id")
+      .eq("id", userId)
+      .maybeSingle();
+    if (profileError) throw profileError;
+
+    const ownerId = profile?.account_owner_id || userId;
+    if (ownerId === userId) {
+      const { data: documents, error: documentsError } = await supabaseAdmin
+        .from("documents")
+        .select("file_key")
+        .eq("user_id", ownerId);
+      if (documentsError) throw documentsError;
+      const keys = (documents || []).map((row: any) => row.file_key).filter(Boolean);
+      for (let index = 0; index < keys.length; index += 100) {
+        const { error } = await supabaseAdmin.storage
+          .from(ENV.SUPABASE_STORAGE_BUCKET)
+          .remove(keys.slice(index, index + 100));
+        if (error) console.error("[Account deletion storage]", error);
+      }
+    }
+
+    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+    if (deleteError) throw deleteError;
+    return res.status(200).json({ success: true });
+  } catch (error: any) {
+    console.error("[Account deletion]", error);
+    return res.status(500).json({ error: "Não foi possível excluir a conta agora. Contate o suporte." });
+  }
+});
+
 app.post("/api/cron/compliance", async (req, res) => {
   if (req.headers.authorization !== `Bearer ${ENV.CRON_SECRET}`) return res.status(401).json({ error: "unauthorized" });
   try { return res.json(await runComplianceSweep()); }
