@@ -22,7 +22,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
       - name: Instalar dependências
         run: npm install
@@ -35,7 +34,6 @@ jobs:
           node - <<'NODE'
           const sharp = require('sharp');
           const fs = require('fs');
-          const path = require('path');
           const expected = {
             'play-store/generated/icon-512.png': [512, 512],
             'play-store/generated/feature-graphic-1024x500.png': [1024, 500],
