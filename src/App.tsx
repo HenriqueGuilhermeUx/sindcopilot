@@ -21,6 +21,7 @@ const Perfil = lazy(() => import("@/pages/Perfil"));
 const Ajudantes = lazy(() => import("@/pages/Ajudantes"));
 const Termos = lazy(() => import("@/pages/Termos"));
 const Privacidade = lazy(() => import("@/pages/Privacidade"));
+const ExclusaoConta = lazy(() => import("@/pages/ExclusaoConta"));
 const Login = lazy(() => import("@/pages/Login"));
 const Register = lazy(() => import("@/pages/Register"));
 const Invite = lazy(() => import("@/pages/Invite"));
@@ -52,6 +53,7 @@ export default function App() {
               <Route path="/convite/:token" component={Invite} />
               <Route path="/termos" component={Termos} />
               <Route path="/privacidade" component={Privacidade} />
+              <Route path="/exclusao-de-conta" component={ExclusaoConta} />
               <Route path="/dashboard">{() => <Private><Home /></Private>}</Route>
               <Route path="/visitas">{() => <Private><ModoVisita /></Private>}</Route>
               <Route path="/condominios/:id">{() => <Private><CondominioDetail /></Private>}</Route>
