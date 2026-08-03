@@ -1,0 +1,46 @@
+name: Inspecionar Configuração Pública Mobile
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/inspect-mobile-config.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Localizar configuração pública no bundle de produção
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/sindcopilot-live
+          curl -fsSL --retry 3 --retry-delay 2 https://sindcopilot.com/ -o /tmp/sindcopilot-live/index.html
+          python - <<'PY'
+          import re, pathlib, urllib.parse, urllib.request
+          root='https://sindcopilot.com/'
+          html=pathlib.Path('/tmp/sindcopilot-live/index.html').read_text(errors='ignore')
+          sources=re.findall(r'<script[^>]+src=["\']([^"\']+)["\']', html)
+          if not sources:
+              raise SystemExit('Nenhum bundle JavaScript encontrado')
+          data=html
+          for src in sources:
+              url=urllib.parse.urljoin(root, src)
+              print(f'Baixando bundle público: {url}')
+              with urllib.request.urlopen(url, timeout=30) as response:
+                  data += '\n' + response.read().decode('utf-8', errors='ignore')
+          urls=sorted(set(re.findall(r'https://[a-z0-9-]+\.supabase\.co', data)))
+          keys=sorted(set(re.findall(r'eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+', data)))
+          anon=[]
+          for key in keys:
+              if len(key) > 100:
+                  anon.append(key)
+          if not urls or not anon:
+              raise SystemExit(f'Configuração não localizada: urls={len(urls)}, jwt={len(anon)}')
+          print('PUBLIC_SUPABASE_URL=' + urls[0])
+          print('PUBLIC_SUPABASE_ANON_KEY=' + anon[0])
+          PY
