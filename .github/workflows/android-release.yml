@@ -9,10 +9,6 @@ on:
       - "capacitor.config.ts"
       - "package.json"
       - ".github/workflows/android-release.yml"
-  pull_request:
-    branches: [main]
-    paths:
-      - ".github/workflows/android-release.yml"
   workflow_dispatch:
     inputs:
       version_code:
@@ -25,7 +21,7 @@ on:
         default: "1.1.0"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: sindcopilot-android-release-${{ github.ref }}
@@ -131,3 +127,38 @@ jobs:
           path: release/android/
           retention-days: 90
           if-no-files-found: error
+
+      - name: Registrar resultado do release no repositório
+        if: always() && github.ref == 'refs/heads/main'
+        env:
+          RELEASE_STATUS: ${{ job.status }}
+          RELEASE_RUN_ID: ${{ github.run_id }}
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          mkdir -p release/android
+          GENERATED=false
+          if compgen -G "release/android/*.aab" > /dev/null; then GENERATED=true; fi
+          cat > release/android/latest.json <<JSON
+          {
+            "app": "SindCopilot",
+            "packageName": "com.sindcopilot.app",
+            "versionName": "${ANDROID_VERSION_NAME}",
+            "versionCode": ${ANDROID_VERSION_CODE},
+            "commit": "${RELEASE_SHA}",
+            "workflowRunId": ${RELEASE_RUN_ID},
+            "status": "${RELEASE_STATUS}",
+            "signedArtifactsGenerated": ${GENERATED}
+          }
+          JSON
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout main
+          git pull --rebase origin main
+          git add release/android/latest.json
+          if git diff --cached --quiet; then
+            echo "Status do release já atualizado."
+          else
+            git commit -m "chore(android): registrar status do release ${ANDROID_VERSION_NAME} [skip ci]"
+            git push origin main
+          fi
