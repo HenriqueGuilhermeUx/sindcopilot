@@ -235,7 +235,11 @@ fieldVisitsRouter.post("/complete", async (req: AuthRequest, res) => {
     });
   } catch (error) {
     if (visitId) {
-      await supabaseAdmin.from("field_visits").delete().eq("id", visitId).catch(() => undefined);
+      const { error: rollbackError } = await supabaseAdmin
+        .from("field_visits")
+        .delete()
+        .eq("id", visitId);
+      if (rollbackError) console.error("[Field visits rollback]", rollbackError);
     }
     return sendError(res, error);
   }
