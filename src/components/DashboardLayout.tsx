@@ -28,6 +28,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import MobileAppNav from "@/components/MobileAppNav";
+import { isNativeApp } from "@/lib/runtime";
 import { cn } from "@/lib/utils";
 
 const items = [
@@ -53,6 +55,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [open, setOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const fieldMode = location.startsWith("/visitas");
+  const visibleLower = isNativeApp ? lower.filter(([, , path]) => path !== "/planos") : lower;
 
   if (loading) return <div className="grid min-h-screen place-items-center text-muted-foreground">Carregando...</div>;
   if (!user) {
@@ -99,7 +102,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </button>
         ))}
         <div className="my-3 border-t border-white/10" />
-        {lower.map(([Icon, label, path]) => (
+        {visibleLower.map(([Icon, label, path]) => (
           <button
             key={path}
             onClick={() => nav(path)}
@@ -133,7 +136,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       )}
 
-      <div className="lg:pl-72">
+      <div className="pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-0 lg:pl-72">
         <header className="sticky top-0 z-30 flex h-16 items-center border-b bg-background/95 px-4 backdrop-blur sm:px-6">
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(true)}>
             <Menu className="h-5 w-5" />
@@ -178,14 +181,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </main>
       </div>
 
-      {!fieldMode && (
-        <button
-          onClick={() => nav("/visitas")}
-          className="fixed bottom-5 right-4 z-40 flex items-center gap-2 rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white shadow-2xl shadow-slate-900/30 active:scale-95 lg:hidden"
-        >
-          <ClipboardCheck className="h-5 w-5 text-cyan-300" /> Visita
-        </button>
-      )}
+      <MobileAppNav />
     </div>
   );
 }
