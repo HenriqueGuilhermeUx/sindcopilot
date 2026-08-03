@@ -62,10 +62,14 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Validar secrets do release
+      - name: Carregar configuração pública de produção
+        if: env.VITE_SUPABASE_URL == '' || env.VITE_SUPABASE_ANON_KEY == ''
+        run: node scripts/load-public-mobile-config.mjs
+
+      - name: Validar configuração e assinatura do release
         run: |
-          test -n "$VITE_SUPABASE_URL" || (echo "Secret VITE_SUPABASE_URL ausente" && exit 1)
-          test -n "$VITE_SUPABASE_ANON_KEY" || (echo "Secret VITE_SUPABASE_ANON_KEY ausente" && exit 1)
+          test -n "$VITE_SUPABASE_URL" || (echo "VITE_SUPABASE_URL ausente" && exit 1)
+          test -n "$VITE_SUPABASE_ANON_KEY" || (echo "VITE_SUPABASE_ANON_KEY ausente" && exit 1)
           test -n "$ANDROID_KEYSTORE_BASE64" || (echo "Secret ANDROID_KEYSTORE_BASE64 ausente" && exit 1)
           test -n "$ANDROID_KEYSTORE_PASSWORD" || (echo "Secret ANDROID_KEYSTORE_PASSWORD ausente" && exit 1)
           test -n "$ANDROID_KEY_ALIAS" || (echo "Secret ANDROID_KEY_ALIAS ausente" && exit 1)

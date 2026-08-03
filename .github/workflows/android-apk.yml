@@ -60,21 +60,14 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Preparar configuração do frontend
+      - name: Carregar configuração pública de produção
+        if: env.VITE_SUPABASE_URL == '' || env.VITE_SUPABASE_ANON_KEY == ''
+        run: node scripts/load-public-mobile-config.mjs
+
+      - name: Validar configuração do frontend
         run: |
-          if [ -z "$VITE_SUPABASE_URL" ]; then
-            if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-              echo "VITE_SUPABASE_URL=https://example.supabase.co" >> "$GITHUB_ENV"
-              echo "VITE_SUPABASE_ANON_KEY=ci-placeholder-public-anon-key" >> "$GITHUB_ENV"
-            else
-              echo "Secret VITE_SUPABASE_URL ausente"
-              exit 1
-            fi
-          fi
-          if [ -z "$VITE_SUPABASE_ANON_KEY" ] && [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
-            echo "Secret VITE_SUPABASE_ANON_KEY ausente"
-            exit 1
-          fi
+          test -n "$VITE_SUPABASE_URL" || (echo "VITE_SUPABASE_URL ausente" && exit 1)
+          test -n "$VITE_SUPABASE_ANON_KEY" || (echo "VITE_SUPABASE_ANON_KEY ausente" && exit 1)
 
       - name: Instalar dependências
         run: npm install
