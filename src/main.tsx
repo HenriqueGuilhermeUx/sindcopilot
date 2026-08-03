@@ -6,8 +6,11 @@ import superjson from "superjson";
 import { trpc } from "@/lib/trpc";
 import { supabase } from "@/lib/supabase";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { apiUrl, applyNativeDocumentClass, isNativeApp } from "@/lib/runtime";
 import App from "@/App";
 import "@/index.css";
+
+applyNativeDocumentClass();
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 }, mutations: { retry: 0 } },
@@ -16,7 +19,7 @@ const queryClient = new QueryClient({
 const trpcClient = trpc.createClient({
   links: [
     httpLink({
-      url: "/api/trpc",
+      url: apiUrl("/api/trpc"),
       transformer: superjson,
       headers: async () => {
         const { data } = await supabase.auth.getSession();
@@ -38,7 +41,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   </React.StrictMode>,
 );
 
-if ("serviceWorker" in navigator && import.meta.env.PROD) {
+if ("serviceWorker" in navigator && import.meta.env.PROD && !isNativeApp) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/sw.js").catch(error => {
       console.error("[PWA] Falha ao registrar service worker", error);
