@@ -12,6 +12,23 @@ export function apiUrl(path: string) {
   return `${configuredBase}${normalized}`;
 }
 
+export function installNativeFetchBridge() {
+  if (!isNativeApp || !configuredBase || typeof window === "undefined") return;
+  const originalFetch = window.fetch.bind(window);
+  window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+    if (typeof input === "string" && input.startsWith("/api/")) {
+      return originalFetch(apiUrl(input), init);
+    }
+    if (input instanceof Request) {
+      const parsed = new URL(input.url, window.location.href);
+      if (parsed.origin === window.location.origin && parsed.pathname.startsWith("/api/")) {
+        return originalFetch(new Request(apiUrl(`${parsed.pathname}${parsed.search}`), input), init);
+      }
+    }
+    return originalFetch(input, init);
+  }) as typeof window.fetch;
+}
+
 export async function impact(style: ImpactStyle = ImpactStyle.Light) {
   if (!isNativeApp) return;
   await Haptics.impact({ style }).catch(() => undefined);
