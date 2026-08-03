@@ -6,11 +6,12 @@ import superjson from "superjson";
 import { trpc } from "@/lib/trpc";
 import { supabase } from "@/lib/supabase";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { apiUrl, applyNativeDocumentClass, isNativeApp } from "@/lib/runtime";
+import { apiUrl, applyNativeDocumentClass, installNativeFetchBridge, isNativeApp } from "@/lib/runtime";
 import App from "@/App";
 import "@/index.css";
 
 applyNativeDocumentClass();
+installNativeFetchBridge();
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 }, mutations: { retry: 0 } },
