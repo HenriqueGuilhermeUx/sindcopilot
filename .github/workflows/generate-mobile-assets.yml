@@ -1,10 +1,20 @@
 name: Gerar Assets Android e Google Play
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/generate-mobile-assets.mjs"
+      - "package.json"
+      - ".github/workflows/generate-mobile-assets.yml"
   workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: sindcopilot-assets-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   generate-assets:
@@ -47,6 +57,8 @@ jobs:
             'assets/icon-foreground.png': [1024, 1024],
             'assets/icon-background.png': [1024, 1024],
             'assets/splash.png': [2732, 2732],
+            'assets/splash-dark.png': [2732, 2732],
+            'public/app-icon-512.png': [512, 512],
           };
           (async () => {
             for (const [file, dimensions] of Object.entries(expected)) {
