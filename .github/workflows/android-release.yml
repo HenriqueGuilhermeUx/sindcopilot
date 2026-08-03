@@ -1,0 +1,122 @@
+name: Android Release APK e AAB
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: "Android versionCode, maior que o último enviado à Play"
+        required: true
+        default: "1"
+      version_name:
+        description: "Versão exibida na Google Play"
+        required: true
+        default: "1.1.0"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sindcopilot-android-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-release:
+    name: Compilar, assinar e verificar release Android
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      ANDROID_VERSION_CODE: ${{ github.event.inputs.version_code }}
+      ANDROID_VERSION_NAME: ${{ github.event.inputs.version_name }}
+      VITE_API_BASE_URL: https://sindcopilot.com
+      VITE_NATIVE_APP: "true"
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Validar secrets do release
+        run: |
+          test -n "$VITE_SUPABASE_URL" || (echo "Secret VITE_SUPABASE_URL ausente" && exit 1)
+          test -n "$VITE_SUPABASE_ANON_KEY" || (echo "Secret VITE_SUPABASE_ANON_KEY ausente" && exit 1)
+          test -n "$ANDROID_KEYSTORE_BASE64" || (echo "Secret ANDROID_KEYSTORE_BASE64 ausente" && exit 1)
+          test -n "$ANDROID_KEYSTORE_PASSWORD" || (echo "Secret ANDROID_KEYSTORE_PASSWORD ausente" && exit 1)
+          test -n "$ANDROID_KEY_ALIAS" || (echo "Secret ANDROID_KEY_ALIAS ausente" && exit 1)
+          test -n "$ANDROID_KEY_PASSWORD" || (echo "Secret ANDROID_KEY_PASSWORD ausente" && exit 1)
+          test "$ANDROID_VERSION_CODE" -gt 0 || (echo "versionCode inválido" && exit 1)
+
+      - name: Instalar dependências
+        run: npm install
+
+      - name: Validar aplicação
+        run: |
+          npm run typecheck
+          npm test
+
+      - name: Gerar assets oficiais
+        run: npm run mobile:assets
+
+      - name: Compilar frontend nativo
+        run: npm run build:native
+
+      - name: Criar e sincronizar projeto Android
+        run: |
+          npx cap add android
+          npx cap sync android
+          npx capacitor-assets generate --android
+
+      - name: Restaurar upload key
+        run: |
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/sindcopilot-release.jks
+          test -s android/app/sindcopilot-release.jks
+          keytool -list -keystore android/app/sindcopilot-release.jks -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" >/dev/null
+
+      - name: Aplicar versão, API 36 e assinatura
+        run: node scripts/patch-capacitor-android.mjs
+
+      - name: Compilar APK e AAB de produção
+        run: cd android && ./gradlew clean assembleRelease bundleRelease --stacktrace
+
+      - name: Verificar assinatura e integridade
+        run: |
+          APK=$(find android/app/build/outputs/apk/release -name '*.apk' | head -n 1)
+          AAB=$(find android/app/build/outputs/bundle/release -name '*.aab' | head -n 1)
+          test -f "$APK"
+          test -f "$AAB"
+          BUILD_TOOLS=$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)
+          "$ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$APK"
+          jarsigner -verify -verbose -certs "$AAB" >/dev/null
+          unzip -t "$AAB" >/dev/null
+          mkdir -p release/android
+          cp "$APK" "release/android/SindCopilot-${ANDROID_VERSION_NAME}-release.apk"
+          cp "$AAB" "release/android/SindCopilot-${ANDROID_VERSION_NAME}-play.aab"
+          sha256sum release/android/* > release/android/SHA256SUMS.txt
+          keytool -list -v -keystore android/app/sindcopilot-release.jks -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" | grep -E "SHA1:|SHA256:" > release/android/UPLOAD_CERTIFICATE_FINGERPRINTS.txt
+
+      - name: Publicar APK e AAB assinados
+        uses: actions/upload-artifact@v4
+        with:
+          name: SindCopilot-${{ env.ANDROID_VERSION_NAME }}-release
+          path: release/android/
+          retention-days: 90
+          if-no-files-found: error
