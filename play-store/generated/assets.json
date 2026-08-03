@@ -1,0 +1,15 @@
+{
+  "generatedAt": "2026-08-03T00:47:27.378Z",
+  "brand": "SindCopilot",
+  "packageName": "com.sindcopilot.app",
+  "icon": "icon-512.png",
+  "featureGraphic": "feature-graphic-1024x500.png",
+  "phoneScreenshots": [
+    "phone-01-hoje.png",
+    "phone-02-modo-visita.png",
+    "phone-03-ocorrencia.png",
+    "phone-04-compliance.png",
+    "phone-05-documentos-ia.png",
+    "phone-06-offline.png"
+  ]
+}
