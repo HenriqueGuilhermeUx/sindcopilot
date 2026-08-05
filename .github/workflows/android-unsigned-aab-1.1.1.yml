@@ -1,0 +1,110 @@
+name: Android AAB 1.1.1 para assinatura privada
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "scripts/**"
+      - "capacitor.config.ts"
+      - "package.json"
+      - "play-store/**"
+      - ".github/workflows/android-unsigned-aab-1.1.1.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-aab:
+    name: Validar e compilar AAB sem expor upload key
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      ANDROID_VERSION_CODE: "2"
+      ANDROID_VERSION_NAME: "1.1.1"
+      VITE_API_BASE_URL: https://sindcopilot.com
+      VITE_NATIVE_APP: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Carregar configuração pública usada em produção
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 4 --retry-delay 3 https://sindcopilot.com/ -o /tmp/sindcopilot-index.html
+          python - <<'PY'
+          import os, pathlib, re, urllib.parse, urllib.request
+          root = 'https://sindcopilot.com/'
+          html = pathlib.Path('/tmp/sindcopilot-index.html').read_text(errors='ignore')
+          sources = re.findall(r'<script[^>]+src=["\']([^"\']+)["\']', html)
+          data = html
+          for source in sources:
+              with urllib.request.urlopen(urllib.parse.urljoin(root, source), timeout=30) as response:
+                  data += '\n' + response.read().decode('utf-8', errors='ignore')
+          urls = sorted(set(re.findall(r'https://[a-z0-9-]+\.supabase\.co', data)))
+          keys = [key for key in sorted(set(re.findall(r'eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+', data))) if len(key) > 100]
+          if not urls or not keys:
+              raise SystemExit('Configuração pública do Supabase não encontrada no bundle de produção')
+          with open(os.environ['GITHUB_ENV'], 'a') as env:
+              env.write(f'VITE_SUPABASE_URL={urls[0]}\n')
+              env.write(f'VITE_SUPABASE_ANON_KEY={keys[0]}\n')
+          PY
+
+      - name: Instalar dependências e validar aplicação
+        run: |
+          npm install
+          npm run typecheck
+          npm test
+
+      - name: Gerar assets e frontend nativo
+        run: |
+          npm run mobile:assets
+          npm run build:native
+
+      - name: Criar projeto Android
+        run: |
+          npx cap add android
+          npx cap sync android
+          npx capacitor-assets generate --android
+          node scripts/patch-capacitor-android.mjs
+
+      - name: Compilar Android App Bundle
+        run: cd android && ./gradlew clean bundleRelease --stacktrace
+
+      - name: Conferir pacote, versão e integridade
+        shell: bash
+        run: |
+          set -euo pipefail
+          AAB=$(find android/app/build/outputs/bundle/release -name '*.aab' | head -n 1)
+          test -f "$AAB"
+          unzip -t "$AAB" >/dev/null
+          unzip -p "$AAB" base/manifest/AndroidManifest.xml | strings | grep -F 'com.sindcopilot.app'
+          unzip -p "$AAB" base/manifest/AndroidManifest.xml | strings | grep -F '1.1.1'
+          mkdir -p release/android
+          cp "$AAB" release/android/SindCopilot-1.1.1-play-unsigned.aab
+          cp play-store/generated/icon-512.png release/android/SindCopilot-icon-512.png
+          sha256sum release/android/* > release/android/SHA256SUMS-unsigned.txt
+
+      - name: Publicar AAB para assinatura fora do GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: SindCopilot-1.1.1-AAB-unsigned
+          path: release/android/
+          retention-days: 7
+          if-no-files-found: error
