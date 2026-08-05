@@ -12,28 +12,67 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
-      - name: Validar páginas, conteúdo e API publicados
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Instalar Chromium de verificação
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.55.0 --no-save
+          npx playwright install --with-deps chromium
+
+      - name: Validar páginas renderizadas e API
         shell: bash
         run: |
           set -euo pipefail
-          check_page() {
-            local url="$1"
-            local expected="$2"
-            local body
-            body=$(curl -fsSL --retry 3 --retry-delay 2 "$url") || return 1
-            printf '%s' "$body" | grep -F "$expected" >/dev/null
+          cat > /tmp/verify-public.mjs <<'NODE'
+          import { chromium } from 'playwright';
+
+          const pages = [
+            ['https://sindcopilot.com/privacidade', 'Política de Privacidade do SindCopilot'],
+            ['https://sindcopilot.com/exclusao-de-conta', 'Exclusão de conta e dados'],
+            ['https://sindcopilot.com/termos', 'Termos de Uso do SindCopilot'],
+          ];
+
+          const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+          const browser = await chromium.launch({ headless: true });
+          let lastError;
+
+          try {
+            for (let attempt = 1; attempt <= 24; attempt++) {
+              console.log(`Tentativa ${attempt}/24`);
+              try {
+                for (const [url, expected] of pages) {
+                  const page = await browser.newPage();
+                  const response = await page.goto(url, { waitUntil: 'networkidle', timeout: 45000 });
+                  if (!response || !response.ok()) throw new Error(`${url}: HTTP ${response?.status()}`);
+                  await page.getByText(expected, { exact: false }).first().waitFor({ state: 'visible', timeout: 15000 });
+                  const title = await page.title();
+                  console.log(`OK ${url} | ${title}`);
+                  await page.close();
+                }
+
+                const health = await fetch('https://sindcopilot.com/api/health');
+                if (!health.ok) throw new Error(`health HTTP ${health.status}`);
+                const payload = await health.json();
+                if (payload?.status !== 'ok') throw new Error('health sem status ok');
+                console.log('OK API health');
+                console.log('VERIFICADO: privacidade, exclusão, termos e API estão públicos e renderizados.');
+                process.exit(0);
+              } catch (error) {
+                lastError = error;
+                console.log(`Ainda não publicado: ${error.message}`);
+                await sleep(30000);
+              }
+            }
+          } finally {
+            await browser.close();
           }
-          for attempt in $(seq 1 24); do
-            echo "Tentativa $attempt/24"
-            if check_page "https://sindcopilot.com/privacidade" "Política de Privacidade do SindCopilot" \
-              && check_page "https://sindcopilot.com/exclusao-de-conta" "Exclusão de conta e dados" \
-              && check_page "https://sindcopilot.com/termos" "Termos de Uso do SindCopilot" \
-              && curl -fsSL "https://sindcopilot.com/api/health" | grep -F '"status":"ok"' >/dev/null; then
-              echo "VERIFICADO: privacidade, exclusão, termos e API estão públicos."
-              exit 0
-            fi
-            sleep 30
-          done
-          exit 1
+
+          throw lastError || new Error('Verificação pública não concluída');
+          NODE
+          node /tmp/verify-public.mjs
