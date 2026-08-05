@@ -1,0 +1,48 @@
+name: Verificar páginas públicas Google Play
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/pages/Privacidade.tsx"
+      - "src/pages/ExclusaoConta.tsx"
+      - "src/pages/Termos.tsx"
+      - "src/server/**"
+      - ".github/workflows/verify-public-legal-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Confirmar publicação e conteúdo legal
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Aguardar deploy e validar URLs
+        shell: bash
+        run: |
+          set -euo pipefail
+          check_page() {
+            local url="$1"
+            local expected="$2"
+            local body
+            body=$(curl -fsSL --retry 3 --retry-delay 3 "$url") || return 1
+            echo "$body" | grep -F "$expected" >/dev/null
+          }
+
+          for attempt in $(seq 1 24); do
+            echo "Tentativa $attempt de 24"
+            if check_page "https://sindcopilot.com/privacidade" "Política de Privacidade do SindCopilot" \
+              && check_page "https://sindcopilot.com/exclusao-de-conta" "Exclusão de conta e dados" \
+              && check_page "https://sindcopilot.com/termos" "Termos de Uso do SindCopilot" \
+              && curl -fsSL "https://sindcopilot.com/api/health" | grep -F '"status":"ok"' >/dev/null; then
+              echo "Páginas e API publicadas e verificadas com sucesso."
+              exit 0
+            fi
+            sleep 30
+          done
+
+          echo "O deploy não apresentou o conteúdo esperado dentro do prazo."
+          exit 1
