@@ -1,78 +1,73 @@
-# SindCopilot — ficha da Google Play (pt-BR)
+# SindCopilot — ficha final da Google Play (pt-BR)
 
-## Nome do app
+## Identificação do aplicativo
 
-SindCopilot
+- **Nome na Google Play:** SindCopilot
+- **Nome exibido no aparelho:** SindCopilot
+- **Nome do pacote / applicationId:** `com.sindcopilot.app`
+- **Categoria:** Negócios
+- **Idioma principal:** Português (Brasil)
 
-## Descrição curta
+## Descrição curta — 73/80 caracteres
 
-Vistorias, pendências, documentos e IA para síndicos, mesmo offline.
+Gestão condominial com vistorias, prazos, documentos e IA, mesmo offline.
 
-## Descrição completa
+## Descrição completa — 2.247/4.000 caracteres
 
-O SindCopilot reúne em um único aplicativo as atividades que o síndico precisa executar no escritório e durante visitas aos condomínios.
+O SindCopilot reúne em um só lugar a rotina do síndico profissional e da gestão condominial.
 
-Comece o dia vendo obrigações próximas, tarefas, ocorrências urgentes e atividades recentes. Durante uma vistoria, use um checklist simples, registre fotos, dite observações, defina prioridades e transforme problemas encontrados em pendências com prazo.
+Planeje o dia, acompanhe obrigações, registre vistorias, organize documentos, controle pendências e consulte informações com apoio de inteligência artificial — no celular ou no painel web.
 
-### Modo Visita
+MODO VISITA
+Faça inspeções de forma prática, mesmo em locais com internet instável:
+• checklists por área do condomínio;
+• status Conforme, Atenção ou Urgente;
+• fotos e observações vinculadas a cada item;
+• registro por texto ou voz;
+• criação de pendências com prazo;
+• uso offline e sincronização quando a conexão voltar;
+• histórico de visitas e relatórios em PDF.
 
-• Checklist organizado por áreas do condomínio
-• Marcação rápida: Conforme, Atenção ou Urgente
-• Fotos vinculadas a cada item da vistoria
-• Observações por texto ou voz
-• Prazos automáticos para itens que precisam de ação
-• Funcionamento offline em garagens, subsolos e casas de máquinas
-• Sincronização quando a conexão voltar
-• Histórico das visitas e relatório em PDF
+PRAZOS E COMPLIANCE
+Acompanhe obrigações como AVCB, seguro condominial, limpeza de caixa d’água, dedetização, elevadores, extintores, para-raios e laudos. Organize vencimentos, recorrências, responsáveis e histórico.
 
-### Prazos e obrigações
+DOCUMENTOS E IA
+Fotografe ou envie notas fiscais, recibos, contratos, atas, convenções, regimentos e outros arquivos. O SindCopilot pode extrair informações, organizar documentos e ajudar a localizar regras e referências nos arquivos cadastrados.
 
-Acompanhe AVCB, seguro condominial, limpeza de caixa d’água, dedetização, elevadores, extintores, para-raios, laudos e outras obrigações. Organize vencimentos, recorrências, responsáveis e histórico.
+GESTÃO MULTICONDOMÍNIO
+Alterne entre condomínios sem misturar informações. Consulte unidades, fornecedores, documentos, pendências, visitas e atividades de cada operação. A conta proprietária também pode conceder acessos controlados a ajudantes.
 
-### Documentos e inteligência artificial
+RECURSOS PRINCIPAIS
+• painel com prioridades do dia;
+• cadastro de condomínios e unidades;
+• registro rápido de ocorrências;
+• fornecedores e contatos;
+• comunicados, advertências e notificações para revisão;
+• documentos privados e busca organizada;
+• relatórios e compartilhamento em PDF;
+• tema claro e escuro;
+• exclusão de conta dentro do aplicativo;
+• política de privacidade acessível no app.
 
-Fotografe ou envie notas fiscais, recibos, contratos, atas, convenções e regimentos. O SindCopilot pode extrair dados de documentos financeiros e ajudar a consultar regras internas com indicação do documento e da página utilizados como fonte.
+PRIVACIDADE E CONTROLE
+Os dados são transmitidos por conexão segura. Arquivos ficam em armazenamento privado e o acesso é controlado por conta e condomínio. O SindCopilot não vende dados pessoais e não contém publicidade comportamental.
 
-### Operação multi-condomínio
+O SindCopilot é uma ferramenta de produtividade. Conteúdos gerados por OCR ou inteligência artificial podem conter erros e devem ser revisados. O aplicativo não substitui orientação jurídica, contábil, técnica ou administrativa profissional.
 
-Alterne entre condomínios, consulte unidades, fornecedores, documentos, pendências e atividades sem misturar os dados de cada operação. Proprietários da conta também podem conceder acesso controlado a ajudantes.
+## Contatos e URLs da Play Console
 
-### Feito para o dia a dia
+- **E-mail de suporte:** `henriquecampos66@gmail.com`
+- **Site:** `https://sindcopilot.com`
+- **Política de Privacidade:** `https://sindcopilot.com/privacidade`
+- **Exclusão de conta e dados:** `https://sindcopilot.com/exclusao-de-conta`
+- **Termos de Uso:** `https://sindcopilot.com/termos`
 
-• Tela inicial com as prioridades do dia
-• Registro de ocorrência em poucos toques
-• Cadastro e contato rápido de fornecedores
-• Minutas de comunicados, advertências e notificações para revisão
-• Relatórios e compartilhamento em PDF
-• Tema claro e escuro
-• Proteção de dados e exclusão de conta dentro do aplicativo
+## Recursos gráficos oficiais
 
-O SindCopilot não substitui a administradora, o sistema financeiro, orientação jurídica ou a análise profissional. Ele organiza a rotina, centraliza informações e ajuda o síndico a trabalhar com mais agilidade e rastreabilidade.
+- Ícone da loja: `play-store/generated/icon-512.png` — 512 × 512 px
+- Imagem de destaque: `play-store/generated/feature-graphic-1024x500.png` — 1024 × 500 px
+- Screenshots de telefone: `play-store/generated/phone-01-hoje.png` a `phone-06-offline.png` — 1080 × 1920 px
 
-## Categoria
+## Notas da versão 1.1.1
 
-Negócios
-
-## Tags sugeridas
-
-Gestão condominial; produtividade; síndico; checklist; vistoria; documentos
-
-## E-mail de suporte
-
-henriquecampos66@gmail.com
-
-## Site
-
-https://sindcopilot.com
-
-## Política de privacidade
-
-https://sindcopilot.com/privacidade
-
-## Exclusão de conta
-
-https://sindcopilot.com/exclusao-de-conta
-
-## Notas da versão 1.1.0
-
-Primeira versão Android do SindCopilot com painel diário, Modo Visita, checklist offline, fotos, ocorrências, prazos, documentos, assistente de IA, fornecedores, relatórios e sincronização com o painel web.
+Primeira versão pública do SindCopilot para Android, com painel diário, Modo Visita, checklists offline, fotos, ocorrências, prazos, documentos, assistente de IA, fornecedores, relatórios, sincronização e controles de privacidade e exclusão de conta.
