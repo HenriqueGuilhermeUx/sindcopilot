@@ -1,14 +1,18 @@
-# Segurança dos dados — base para o formulário da Google Play
+# Segurança dos dados — respostas de referência para a Google Play
 
-Este documento descreve o comportamento da versão Android do SindCopilot. As respostas finais na Play Console devem permanecer alinhadas ao código e às integrações efetivamente habilitadas em produção.
+Versão analisada: **SindCopilot Android 1.1.1**  
+Pacote: **com.sindcopilot.app**
 
-## Compartilhamento e venda
+As respostas enviadas na Play Console devem permanecer alinhadas às integrações realmente habilitadas em produção.
 
+## Coleta, compartilhamento e venda
+
+- O aplicativo coleta dados necessários para criar a conta e entregar as funcionalidades solicitadas.
 - O SindCopilot não vende dados pessoais.
-- Dados não são compartilhados para publicidade comportamental.
-- Prestadores de infraestrutura podem processar dados exclusivamente para autenticação, armazenamento, hospedagem, inteligência artificial, e-mail e funcionamento do serviço.
+- Não há SDK de anúncios nem uso para publicidade comportamental.
+- Prestadores de serviço podem processar dados como operadores para autenticação, armazenamento, hospedagem, inteligência artificial, pagamento e e-mail.
 
-## Dados coletados
+## Tipos de dados coletados
 
 ### Informações pessoais
 
@@ -17,62 +21,81 @@ Este documento descreve o comportamento da versão Android do SindCopilot. As re
 - Telefone, quando informado
 - CPF, quando informado
 - Empresa e registro profissional, quando informados
+- Identificador da conta e função de acesso
 
-Finalidades: criação e manutenção da conta, autenticação, perfil profissional, suporte e controle de acesso.
+Finalidades: gerenciamento da conta, autenticação, perfil profissional, suporte, segurança e controle de acesso.
 
-### Conteúdo fornecido pelo usuário
+### Informações financeiras e de compra
 
-- Condomínios e unidades cadastrados
+- Plano contratado
+- Identificador e status da assinatura
+- Confirmação de cobrança Pix e período de acesso
+- Dados necessários à cobrança processada pela Woovi
+
+Finalidades: cobrança, confirmação de pagamento, administração da assinatura, prevenção a fraude e suporte. O aplicativo não armazena dados de cartão de crédito.
+
+### Fotos, arquivos e conteúdo fornecido pelo usuário
+
 - Documentos, fotos e arquivos enviados
-- Checklists, visitas e ocorrências
-- Pendências, prazos e obrigações
-- Fornecedores e contatos cadastrados
-- Perguntas e mensagens enviadas ao assistente
+- Condomínios, unidades e contatos cadastrados pelo usuário
+- Checklists, visitas, ocorrências, pendências, prazos e obrigações
+- Fornecedores e contatos
+- Perguntas e mensagens enviadas ao assistente de IA
 
-Finalidades: executar as funcionalidades solicitadas, organizar a operação e manter o histórico do usuário.
+Finalidades: executar as funções escolhidas pelo usuário, organizar a operação, gerar relatórios e manter o histórico da conta.
 
-### Atividade no aplicativo
+### Atividade no app e diagnóstico
 
-- Ações administrativas registradas no histórico da conta
+- Ações administrativas e eventos de segurança
 - Estado de processamento de documentos
-- Uso de funcionalidades sujeito aos limites do plano
+- Consumo de funcionalidades e limites do plano
+- Endereço IP, data, horário, dispositivo, navegador, sistema e registros de erro necessários ao funcionamento e à segurança
 
-Finalidades: segurança, auditoria da operação, suporte e funcionamento do produto.
+Finalidades: operação, auditoria, prevenção a abuso, suporte e correção de falhas.
 
-### Diagnóstico técnico
+## Processadores utilizados
 
-Logs de erro e dados técnicos mínimos podem ser processados pela infraestrutura de hospedagem para segurança e correção de falhas. O aplicativo não inclui SDK próprio de publicidade ou rastreamento comportamental.
+- Supabase: autenticação, banco de dados e armazenamento privado
+- Render: hospedagem do serviço
+- OpenAI: funções de IA e embeddings quando solicitadas
+- Woovi: assinatura e cobrança Pix
+- Resend e provedores de e-mail: comunicações transacionais quando habilitadas
 
 ## Segurança
 
-- Dados são transmitidos por HTTPS.
-- A autenticação utiliza Supabase Auth.
-- Arquivos ficam em armazenamento privado e são acessados por URLs temporárias assinadas.
-- O backend aplica isolamento por proprietário, ajudante e condomínio.
-- O aplicativo não inclui chaves administrativas do Supabase ou segredos do servidor.
+- Dados transmitidos por HTTPS
+- Autenticação por sessão
+- Isolamento por conta, função e condomínio
+- Arquivos em armazenamento privado, acessados por URLs temporárias
+- Segredos administrativos mantidos no servidor
+- Limites de requisição e registros de auditoria
 
-## Exclusão de dados
+## Exclusão de conta
 
-A exclusão pode ser iniciada dentro do aplicativo em:
+Caminho dentro do aplicativo:
 
-`Meu perfil → Excluir conta`
+`Meu Perfil → Excluir conta`
 
-Também há uma página pública:
+Recurso externo, acessível sem instalar o app:
 
 `https://sindcopilot.com/exclusao-de-conta`
 
-A exclusão autenticada remove o usuário. Para contas proprietárias, os registros relacionados são removidos pelas relações do banco e os arquivos privados são excluídos do armazenamento.
+A exclusão autenticada tenta cancelar a assinatura vinculada antes de excluir a conta. Depois remove o usuário, perfil, condomínios, documentos, arquivos privados, visitas, pendências, fornecedores, mensagens e registros operacionais associados, observadas as relações do banco de dados.
 
-## Retenção
-
-- Dados permanecem enquanto a conta estiver ativa e forem necessários para a prestação do serviço.
-- Após solicitação de exclusão, dados vinculados à conta são removidos, exceto informações cuja retenção seja exigida por obrigação legal ou necessária à defesa de direitos.
-- Backups da infraestrutura podem seguir o ciclo técnico do provedor antes da eliminação definitiva.
+Registros mínimos de cobrança, segurança, auditoria, prevenção a fraude ou obrigações legais podem ser conservados pelo prazo necessário. Backups e logs podem permanecer temporariamente até o ciclo técnico de sobrescrita do provedor.
 
 ## Permissões Android
 
-- Internet: sincronização e acesso ao serviço.
-- Câmera: registro opcional de fotos e documentos.
-- Notificações: alertas opcionais quando essa funcionalidade estiver habilitada.
+- Internet: autenticação, sincronização e acesso ao serviço
+- Estado da rede: funcionamento offline/online
+- Câmera: captura opcional de documentos, vistorias e ocorrências
+- Notificações: alertas opcionais
+- Vibração: retorno tátil do aplicativo
 
-O aplicativo não solicita localização em segundo plano, contatos, SMS ou registro de chamadas.
+O aplicativo não solicita localização em segundo plano, contatos, SMS ou histórico de chamadas.
+
+## URLs obrigatórias
+
+- Política de Privacidade: `https://sindcopilot.com/privacidade`
+- Exclusão de conta: `https://sindcopilot.com/exclusao-de-conta`
+- Termos de Uso: `https://sindcopilot.com/termos`
