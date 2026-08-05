@@ -10,6 +10,7 @@ import { createContext } from "./core/context";
 import { ENV } from "./core/env";
 import { supabaseAdmin } from "./core/supabase";
 import { processWooviEvent, verifyWooviWebhook } from "./services/woovi";
+import { cancelAccountSubscription } from "./services/account-subscription";
 import { runComplianceSweep } from "./services/compliance";
 import { fieldVisitsRouter } from "./visits-api";
 
@@ -100,12 +101,24 @@ app.delete("/api/account", async (req, res) => {
     const userId = authData.user.id;
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("users")
-      .select("account_owner_id")
+      .select("account_owner_id,woovi_subscription_id")
       .eq("id", userId)
       .maybeSingle();
     if (profileError) throw profileError;
 
     const ownerId = profile?.account_owner_id || userId;
+    if (ownerId === userId && profile?.woovi_subscription_id) {
+      try {
+        await cancelAccountSubscription(profile.woovi_subscription_id);
+      } catch (error) {
+        console.error("[Account deletion subscription cancellation]", error);
+        return res.status(502).json({
+          error:
+            "Não foi possível cancelar sua assinatura antes da exclusão. Tente novamente ou contate o suporte para evitar novas cobranças.",
+        });
+      }
+    }
+
     if (ownerId === userId) {
       const { data: documents, error: documentsError } = await supabaseAdmin
         .from("documents")
