@@ -29,7 +29,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat > /tmp/verify-public.mjs <<'NODE'
+          cat > verify-public.mjs <<'NODE'
           import { chromium } from 'playwright';
 
           const pages = [
@@ -51,8 +51,7 @@ jobs:
                   const response = await page.goto(url, { waitUntil: 'networkidle', timeout: 45000 });
                   if (!response || !response.ok()) throw new Error(`${url}: HTTP ${response?.status()}`);
                   await page.getByText(expected, { exact: false }).first().waitFor({ state: 'visible', timeout: 15000 });
-                  const title = await page.title();
-                  console.log(`OK ${url} | ${title}`);
+                  console.log(`OK ${url}`);
                   await page.close();
                 }
 
@@ -75,4 +74,4 @@ jobs:
 
           throw lastError || new Error('Verificação pública não concluída');
           NODE
-          node /tmp/verify-public.mjs
+          node verify-public.mjs
