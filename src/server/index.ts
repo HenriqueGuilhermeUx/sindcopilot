@@ -19,6 +19,33 @@ const app = express();
 app.set("trust proxy", 1);
 app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: "cross-origin" } }));
 
+const allowedOrigins = new Set([
+  "https://sindcopilot.com",
+  "https://www.sindcopilot.com",
+  "https://localhost",
+  "http://localhost",
+  "capacitor://localhost",
+]);
+
+try {
+  allowedOrigins.add(new URL(ENV.APP_URL).origin);
+} catch {
+  // APP_URL já é validada no carregamento do ambiente; proteção adicional para não interromper o servidor.
+}
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.has(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Authorization,Content-Type,X-Requested-With");
+    res.setHeader("Access-Control-Max-Age", "86400");
+  }
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+
 function parseWooviPayload(rawBody: Buffer): unknown {
   const firstParse = JSON.parse(rawBody.toString("utf8"));
   if (typeof firstParse === "string") return JSON.parse(firstParse);
@@ -147,7 +174,7 @@ app.delete("/api/account", async (req, res) => {
 
 app.post("/api/cron/compliance", async (req, res) => {
   if (req.headers.authorization !== `Bearer ${ENV.CRON_SECRET}`) return res.status(401).json({ error: "unauthorized" });
-  try { return res.json(await runComplianceSweep()); }
+  try { return res.json(await runComplianceSweep(req.body?.ownerId)); }
   catch (error: any) { console.error(error); return res.status(500).json({ error: error?.message || "cron failed" }); }
 });
 
