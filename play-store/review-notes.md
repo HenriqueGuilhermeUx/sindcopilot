@@ -4,6 +4,20 @@
 
 O SindCopilot é uma ferramenta de produtividade e gestão para síndicos profissionais. A versão Android permite consultar prioridades, realizar vistorias, registrar ocorrências, acompanhar obrigações, acessar documentos e utilizar o assistente com base em documentos cadastrados.
 
+## Correção da versão 1.1.2
+
+Esta versão corrige especificamente o problema de funcionalidade reportado na revisão anterior.
+
+- O **Assistente IA** passou a utilizar uma rota dedicada e autenticada no backend.
+- Consultas possuem timeout e nova tentativa automática para falhas transitórias do provedor.
+- As perguntas sugeridas respondem ao toque, sem depender de um segundo comando.
+- Se o serviço externo de IA estiver temporariamente indisponível, o aplicativo oferece uma resposta operacional de contingência e um botão **Tentar novamente**, em vez de exibir uma área sem resposta.
+- Ícones de avatar do chat são apenas decorativos e não possuem aparência/comportamento de botão.
+- Botões de limpar conversa e enviar pergunta possuem rótulos acessíveis e estado visual de carregamento.
+- Atalhos da navegação móvel foram revisados para não prometer ações que a tela de destino não executa automaticamente.
+
+Teste rápido sugerido: abra **Mais → Assistente IA** e toque em **“Como aplicar uma multa por infração?”**. A pergunta é enviada imediatamente e deve produzir uma resposta no próprio chat.
+
 ## Acesso para análise
 
 Antes de enviar a versão para produção, preencher na Play Console uma conta de demonstração reutilizável:
@@ -18,6 +32,7 @@ A conta deve permanecer ativa durante toda a análise e conter:
 - Uma obrigação próxima do vencimento
 - Um fornecedor
 - Um documento de demonstração sem dados pessoais reais
+- Preferencialmente uma Convenção ou Regimento de demonstração já indexado para testar respostas contextualizadas
 
 Não coloque credenciais reais neste arquivo ou no repositório.
 
@@ -31,7 +46,7 @@ Não coloque credenciais reais neste arquivo ou no repositório.
 6. Salvar ou concluir a visita.
 7. Abrir **Pendências** para consultar obrigações.
 8. Abrir **Mais → Documentos** para visualizar os arquivos cadastrados.
-9. Abrir **Mais → Assistente IA** e fazer uma pergunta sobre o documento de demonstração.
+9. Abrir **Mais → Assistente IA** e tocar em uma pergunta sugerida ou digitar uma pergunta. Para uma regra interna específica, selecione o condomínio que possui documento indexado.
 10. Abrir **Mais → Meu perfil** para encontrar a opção de exclusão de conta.
 
 ## Cobrança
