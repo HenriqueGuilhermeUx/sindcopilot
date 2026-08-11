@@ -1,0 +1,61 @@
+name: Verificar backend Android 1.1.2 em produção
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/verify-android-backend-1.1.2.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Aguardar deploy e validar CORS do Capacitor
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            echo "Tentativa $attempt/30"
+
+            HEALTH=$(curl -fsS --max-time 20 https://sindcopilot.com/api/health || true)
+            echo "health=$HEALTH"
+
+            HEADERS=$(mktemp)
+            STATUS=$(curl -sS --max-time 20 -o /dev/null -D "$HEADERS" -w '%{http_code}' \
+              -X OPTIONS 'https://sindcopilot.com/api/assistant/chat' \
+              -H 'Origin: https://localhost' \
+              -H 'Access-Control-Request-Method: POST' \
+              -H 'Access-Control-Request-Headers: authorization,content-type' || true)
+
+            AUTH_HEADERS=$(mktemp)
+            AUTH_BODY=$(mktemp)
+            AUTH_STATUS=$(curl -sS --max-time 20 -o "$AUTH_BODY" -D "$AUTH_HEADERS" -w '%{http_code}' \
+              -X POST 'https://sindcopilot.com/api/assistant/chat' \
+              -H 'Origin: https://localhost' \
+              -H 'Content-Type: application/json' \
+              --data '{"message":"Como aplicar uma multa por infração?"}' || true)
+
+            if echo "$HEALTH" | grep -F '"version":"1.2.1"' >/dev/null \
+              && [ "$STATUS" = "204" ] \
+              && grep -i '^access-control-allow-origin: https://localhost' "$HEADERS" >/dev/null \
+              && [ "$AUTH_STATUS" = "401" ] \
+              && grep -i '^access-control-allow-origin: https://localhost' "$AUTH_HEADERS" >/dev/null \
+              && grep -F 'Sua sessão expirou' "$AUTH_BODY" >/dev/null; then
+              echo "VERIFICADO: backend 1.2.1, CORS do Capacitor e rota do Assistente estão publicados."
+              cat "$HEADERS"
+              cat "$AUTH_BODY"
+              exit 0
+            fi
+
+            echo "Ainda aguardando deploy: preflight=$STATUS assistant=$AUTH_STATUS"
+            cat "$HEADERS" || true
+            cat "$AUTH_BODY" || true
+            sleep 30
+          done
+
+          echo "Deploy não atingiu o estado esperado dentro do prazo."
+          exit 1
