@@ -174,7 +174,7 @@ app.delete("/api/account", async (req, res) => {
 
 app.post("/api/cron/compliance", async (req, res) => {
   if (req.headers.authorization !== `Bearer ${ENV.CRON_SECRET}`) return res.status(401).json({ error: "unauthorized" });
-  try { return res.json(await runComplianceSweep(req.body?.ownerId)); }
+  try { return res.json(await runComplianceSweep()); }
   catch (error: any) { console.error(error); return res.status(500).json({ error: error?.message || "cron failed" }); }
 });
 
