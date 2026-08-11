@@ -13,6 +13,7 @@ import { processWooviEvent, verifyWooviWebhook } from "./services/woovi";
 import { cancelAccountSubscription } from "./services/account-subscription";
 import { runComplianceSweep } from "./services/compliance";
 import { fieldVisitsRouter } from "./visits-api";
+import { assistantApiRouter } from "./assistant-api";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -85,9 +86,10 @@ app.post("/api/woovi/webhook", express.raw({ type: "application/json" }), async 
 app.use(express.json({ limit: "28mb" }));
 app.use(express.urlencoded({ extended: true, limit: "28mb" }));
 app.use("/api", rateLimit({ windowMs: 60_000, limit: 180, standardHeaders: "draft-7", legacyHeaders: false }));
+app.use("/api/assistant", rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: "draft-7", legacyHeaders: false }));
 app.use("/api/trpc/ai", rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: "draft-7", legacyHeaders: false }));
 
-app.get("/api/health", (_req, res) => res.json({ status: "ok", service: "SindCopilot", version: "1.2.0" }));
+app.get("/api/health", (_req, res) => res.json({ status: "ok", service: "SindCopilot", version: "1.2.1" }));
 
 app.delete("/api/account", async (req, res) => {
   try {
@@ -149,6 +151,7 @@ app.post("/api/cron/compliance", async (req, res) => {
   catch (error: any) { console.error(error); return res.status(500).json({ error: error?.message || "cron failed" }); }
 });
 
+app.use("/api/assistant", assistantApiRouter);
 app.use("/api/field-visits", fieldVisitsRouter);
 app.use("/api/trpc", createExpressMiddleware({
   router: appRouter,
