@@ -2,6 +2,8 @@ import { ENV } from "../core/env";
 import { serviceUnavailable } from "../core/errors";
 
 const API = "https://api.openai.com/v1";
+const OPENAI_TIMEOUT_MS = 35_000;
+const RETRYABLE = new Set([408, 409, 429, 500, 502, 503, 504]);
 
 type JsonSchema = { name: string; schema: Record<string, unknown> };
 type InputPart =
@@ -14,25 +16,58 @@ function requireKey() {
   return ENV.OPENAI_API_KEY;
 }
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 async function api(path: string, body: unknown) {
-  const response = await fetch(`${API}${path}`, {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${requireKey()}` },
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) {
-    const text = await response.text();
-    console.error("[OpenAI]", response.status, text);
-    throw serviceUnavailable(`Falha no serviço de IA (${response.status})`);
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const response = await fetch(`${API}${path}`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${requireKey()}`,
+          "x-client-request-id": crypto.randomUUID(),
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(OPENAI_TIMEOUT_MS),
+      });
+
+      if (response.ok) return response.json() as Promise<any>;
+
+      const text = await response.text();
+      const requestId = response.headers.get("x-request-id") || "sem-request-id";
+      console.error("[OpenAI]", response.status, requestId, text.slice(0, 1200));
+
+      if (attempt === 0 && RETRYABLE.has(response.status)) {
+        await sleep(700);
+        continue;
+      }
+
+      throw serviceUnavailable(`Falha no serviço de IA (${response.status})`);
+    } catch (error: any) {
+      lastError = error;
+      const timedOut = error?.name === "TimeoutError" || error?.name === "AbortError";
+      console.error("[OpenAI transport]", timedOut ? "timeout" : error?.message || error);
+      if (attempt === 0) {
+        await sleep(500);
+        continue;
+      }
+    }
   }
-  return response.json() as Promise<any>;
+
+  if ((lastError as any)?.code === "SERVICE_UNAVAILABLE") throw lastError;
+  throw serviceUnavailable("O serviço de IA demorou demais para responder");
 }
 
 function outputText(response: any) {
-  if (typeof response.output_text === "string") return response.output_text;
+  if (typeof response.output_text === "string" && response.output_text.trim()) return response.output_text.trim();
   for (const item of response.output || []) {
     if (item.type !== "message") continue;
-    for (const part of item.content || []) if (part.type === "output_text" && typeof part.text === "string") return part.text;
+    for (const part of item.content || []) {
+      if (part.type === "output_text" && typeof part.text === "string" && part.text.trim()) return part.text.trim();
+    }
   }
   throw serviceUnavailable("A IA não retornou conteúdo");
 }
@@ -59,19 +94,33 @@ export async function structured<T>(params: {
     ],
     text: { format: { type: "json_schema", name: params.schema.name, strict: true, schema: params.schema.schema } },
   });
-  try { return JSON.parse(outputText(response)) as T; }
-  catch (error) { console.error("[OpenAI JSON]", error, outputText(response)); throw serviceUnavailable("A IA retornou dados inválidos"); }
+  try {
+    return JSON.parse(outputText(response)) as T;
+  } catch (error) {
+    console.error("[OpenAI JSON]", error, outputText(response));
+    throw serviceUnavailable("A IA retornou dados inválidos");
+  }
 }
 
 export async function textResponse(system: string, prompt: string) {
-  const response = await api("/responses", { model: ENV.OPENAI_MODEL, input: [{ role: "system", content: system }, { role: "user", content: prompt }] });
+  const response = await api("/responses", {
+    model: ENV.OPENAI_MODEL,
+    input: [
+      { role: "system", content: system },
+      { role: "user", content: prompt },
+    ],
+  });
   return outputText(response);
 }
 
 export async function embeddings(texts: string[]): Promise<number[][]> {
   if (!texts.length) return [];
-  const response = await api("/embeddings", { model: ENV.OPENAI_EMBEDDING_MODEL, input: texts, encoding_format: "float" });
-  return (response.data || []).sort((a: any,b: any)=>a.index-b.index).map((x: any)=>x.embedding as number[]);
+  const response = await api("/embeddings", {
+    model: ENV.OPENAI_EMBEDDING_MODEL,
+    input: texts,
+    encoding_format: "float",
+  });
+  return (response.data || []).sort((a: any, b: any) => a.index - b.index).map((x: any) => x.embedding as number[]);
 }
 
 export type ExtractedPage = { pageNumber: number; text: string };
@@ -101,9 +150,18 @@ async function ocrFile(buffer: Buffer, fileName: string, mimeType: string): Prom
       schema: {
         type: "object",
         properties: {
-          pages: { type: "array", items: { type: "object", properties: { page_number: { type: "integer" }, text: { type: "string" } }, required: ["page_number","text"], additionalProperties: false } },
+          pages: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: { page_number: { type: "integer" }, text: { type: "string" } },
+              required: ["page_number", "text"],
+              additionalProperties: false,
+            },
+          },
         },
-        required: ["pages"], additionalProperties: false,
+        required: ["pages"],
+        additionalProperties: false,
       },
     },
   });
@@ -114,9 +172,11 @@ export async function extractPages(buffer: Buffer, fileName: string, mimeType: s
   if (mimeType === "application/pdf") {
     try {
       const pages = await extractPdfLocally(buffer);
-      const useful = pages.reduce((n,p)=>n+p.text.length,0);
+      const useful = pages.reduce((n, p) => n + p.text.length, 0);
       if (useful >= Math.max(200, pages.length * 30)) return pages;
-    } catch (error) { console.warn("[PDF text extraction] fallback para OCR", error); }
+    } catch (error) {
+      console.warn("[PDF text extraction] fallback para OCR", error);
+    }
   }
   return ocrFile(buffer, fileName, mimeType);
 }

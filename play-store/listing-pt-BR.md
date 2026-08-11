@@ -68,6 +68,6 @@ O SindCopilot é uma ferramenta de produtividade. Conteúdos gerados por OCR ou 
 - Imagem de destaque: `play-store/generated/feature-graphic-1024x500.png` — 1024 × 500 px
 - Screenshots de telefone: `play-store/generated/phone-01-hoje.png` a `phone-06-offline.png` — 1080 × 1920 px
 
-## Notas da versão 1.1.1
+## Notas da versão 1.1.2
 
-Primeira versão pública do SindCopilot para Android, com painel diário, Modo Visita, checklists offline, fotos, ocorrências, prazos, documentos, assistente de IA, fornecedores, relatórios, sincronização e controles de privacidade e exclusão de conta.
+Correções de estabilidade e usabilidade no Android. O Assistente IA agora responde por uma rota dedicada, possui nova tentativa automática, tratamento de timeout, modo de contingência e botão para repetir consultas. Também revisamos os atalhos e controles móveis para garantir que cada botão execute a ação indicada.
