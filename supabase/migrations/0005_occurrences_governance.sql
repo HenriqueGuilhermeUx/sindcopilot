@@ -13,6 +13,10 @@ create table if not exists public.occurrences (
   status text not null default 'open' check (status in ('open','under_review','notified','penalized','resolved','archived')),
   happened_at timestamptz not null default now(),
   location text,
+  reported_by text,
+  reported_channel text not null default 'manual' check (reported_channel in ('manual','portaria','email','whatsapp','visit','other')),
+  source_type text not null default 'manual' check (source_type in ('manual','visit','system')),
+  source_visit_id bigint references public.field_visits(id) on delete set null,
   rule_document_id bigint references public.documents(id) on delete set null,
   rule_page integer,
   rule_reference text,
@@ -26,6 +30,7 @@ create table if not exists public.occurrences (
 create index if not exists occurrences_user_created_idx on public.occurrences(user_id, created_at desc);
 create index if not exists occurrences_condominium_idx on public.occurrences(condominium_id, status, happened_at desc);
 create index if not exists occurrences_unit_idx on public.occurrences(unit_id, category, happened_at desc);
+create index if not exists occurrences_source_visit_idx on public.occurrences(source_visit_id);
 drop trigger if exists occurrences_updated_at on public.occurrences;
 create trigger occurrences_updated_at before update on public.occurrences for each row execute function public.set_updated_at();
 
@@ -38,6 +43,11 @@ create table if not exists public.occurrence_evidence (
   description text,
   witness_name text,
   captured_at timestamptz,
+  file_key text unique,
+  file_name text,
+  mime_type text,
+  size_bytes bigint not null default 0,
+  sha256 text,
   created_by uuid references public.users(id) on delete set null,
   created_at timestamptz not null default now()
 );
@@ -78,3 +88,21 @@ grant all on public.occurrence_events to service_role;
 grant usage, select on sequence public.occurrences_id_seq to service_role;
 grant usage, select on sequence public.occurrence_evidence_id_seq to service_role;
 grant usage, select on sequence public.occurrence_events_id_seq to service_role;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'occurrence-evidence',
+  'occurrence-evidence',
+  false,
+  26214400,
+  array[
+    'application/pdf',
+    'image/jpeg','image/png','image/webp',
+    'video/mp4','video/webm',
+    'audio/mpeg','audio/mp4','audio/webm','audio/wav','audio/ogg'
+  ]
+)
+on conflict (id) do update
+set public=false,
+    file_size_limit=26214400,
+    allowed_mime_types=excluded.allowed_mime_types;
