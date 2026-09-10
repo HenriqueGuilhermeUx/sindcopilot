@@ -8,11 +8,11 @@
 - **Categoria:** Negócios
 - **Idioma principal:** Português (Brasil)
 
-## Descrição curta — 73/80 caracteres
+## Descrição curta
 
 Gestão condominial com vistorias, prazos, documentos e IA, mesmo offline.
 
-## Descrição completa — 2.247/4.000 caracteres
+## Descrição completa
 
 O SindCopilot reúne em um só lugar a rotina do síndico profissional e da gestão condominial.
 
@@ -28,6 +28,20 @@ Faça inspeções de forma prática, mesmo em locais com internet instável:
 • uso offline e sincronização quando a conexão voltar;
 • histórico de visitas e relatórios em PDF.
 
+OCORRÊNCIAS E GOVERNANÇA
+Registre situações do condomínio e mantenha uma linha do tempo organizada do caso:
+• condomínio e unidade envolvidos;
+• data, local, categoria e gravidade;
+• fotos, vídeos, áudios, documentos e testemunhos;
+• manifestações e defesa do morador;
+• histórico de reincidência;
+• vínculo com Convenção, Regimento e demais documentos cadastrados;
+• verificador de consistência antes de uma medida disciplinar;
+• geração de minutas de notificação, advertência ou multa para revisão;
+• dossiê PDF do caso.
+
+O Verificador de Consistência funciona como apoio de processo e organização. Ele não substitui análise jurídica nem decide automaticamente pela aplicação de penalidades.
+
 PRAZOS E COMPLIANCE
 Acompanhe obrigações como AVCB, seguro condominial, limpeza de caixa d’água, dedetização, elevadores, extintores, para-raios e laudos. Organize vencimentos, recorrências, responsáveis e histórico.
 
@@ -35,14 +49,14 @@ DOCUMENTOS E IA
 Fotografe ou envie notas fiscais, recibos, contratos, atas, convenções, regimentos e outros arquivos. O SindCopilot pode extrair informações, organizar documentos e ajudar a localizar regras e referências nos arquivos cadastrados.
 
 GESTÃO MULTICONDOMÍNIO
-Alterne entre condomínios sem misturar informações. Consulte unidades, fornecedores, documentos, pendências, visitas e atividades de cada operação. A conta proprietária também pode conceder acessos controlados a ajudantes.
+Alterne entre condomínios sem misturar informações. Consulte unidades, fornecedores, documentos, pendências, visitas, ocorrências e atividades de cada operação. A conta proprietária também pode conceder acessos controlados a ajudantes.
 
 RECURSOS PRINCIPAIS
 • painel com prioridades do dia;
 • cadastro de condomínios e unidades;
-• registro rápido de ocorrências;
+• registro e histórico de ocorrências;
 • fornecedores e contatos;
-• comunicados, advertências e notificações para revisão;
+• comunicados, advertências, notificações e multas para revisão;
 • documentos privados e busca organizada;
 • relatórios e compartilhamento em PDF;
 • tema claro e escuro;
@@ -68,6 +82,6 @@ O SindCopilot é uma ferramenta de produtividade. Conteúdos gerados por OCR ou 
 - Imagem de destaque: `play-store/generated/feature-graphic-1024x500.png` — 1024 × 500 px
 - Screenshots de telefone: `play-store/generated/phone-01-hoje.png` a `phone-06-offline.png` — 1080 × 1920 px
 
-## Notas da versão 1.1.2
+## Notas da versão 1.1.3
 
-Correções de estabilidade e usabilidade no Android. O Assistente IA agora responde por uma rota dedicada, possui nova tentativa automática, tratamento de timeout, modo de contingência e botão para repetir consultas. Também revisamos os atalhos e controles móveis para garantir que cada botão execute a ação indicada.
+Nova Central de Ocorrências para apoiar a gestão condominial do início ao fim: registro de casos, evidências, testemunhos, manifestações, reincidência, vínculo com regras internas, linha do tempo e dossiê PDF. O Modo Visita agora pode transformar achados de Atenção e Urgente em ocorrências rastreáveis. Também incluímos o Verificador de Consistência para ajudar o síndico a revisar evidências, histórico e tratamento uniforme antes de uma medida disciplinar.
