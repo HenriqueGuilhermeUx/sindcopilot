@@ -11,6 +11,7 @@ import {
   Menu,
   MessageSquare,
   Moon,
+  ShieldCheck,
   Sun,
   User,
   UserPlus,
@@ -35,6 +36,7 @@ import { cn } from "@/lib/utils";
 const items = [
   [LayoutDashboard, "Dashboard", "/dashboard"],
   [ClipboardCheck, "Modo Visita", "/visitas"],
+  [ShieldCheck, "Ocorrências", "/ocorrencias"],
   [Building2, "Condomínios", "/condominios"],
   [FileText, "Documentos", "/documentos"],
   [CalendarCheck, "Compliance", "/compliance"],
@@ -94,11 +96,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 ? "bg-cyan-500/15 text-cyan-200"
                 : "text-slate-300 hover:bg-white/5 hover:text-white",
               path === "/visitas" && location !== path && "border border-cyan-400/20 bg-cyan-500/5",
+              path === "/ocorrencias" && location !== path && "border border-blue-400/10 bg-blue-500/5",
             )}
           >
             <Icon className="h-4 w-4" />
             {label}
             {path === "/visitas" && <span className="ml-auto rounded-full bg-cyan-400/15 px-2 py-0.5 text-[10px] text-cyan-200">CAMPO</span>}
+            {path === "/ocorrencias" && <span className="ml-auto rounded-full bg-blue-400/15 px-2 py-0.5 text-[10px] text-blue-200">CASOS</span>}
           </button>
         ))}
         <div className="my-3 border-t border-white/10" />

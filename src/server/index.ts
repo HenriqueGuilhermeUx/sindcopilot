@@ -14,6 +14,7 @@ import { cancelAccountSubscription } from "./services/account-subscription";
 import { runComplianceSweep } from "./services/compliance";
 import { fieldVisitsRouter } from "./visits-api";
 import { assistantApiRouter } from "./assistant-api";
+import { occurrencesRouter } from "./occurrences-api";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -110,13 +111,14 @@ app.post("/api/woovi/webhook", express.raw({ type: "application/json" }), async 
   }
 });
 
-app.use(express.json({ limit: "28mb" }));
-app.use(express.urlencoded({ extended: true, limit: "28mb" }));
+app.use(express.json({ limit: "36mb" }));
+app.use(express.urlencoded({ extended: true, limit: "36mb" }));
 app.use("/api", rateLimit({ windowMs: 60_000, limit: 180, standardHeaders: "draft-7", legacyHeaders: false }));
 app.use("/api/assistant", rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: "draft-7", legacyHeaders: false }));
+app.use("/api/occurrences", rateLimit({ windowMs: 60_000, limit: 90, standardHeaders: "draft-7", legacyHeaders: false }));
 app.use("/api/trpc/ai", rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: "draft-7", legacyHeaders: false }));
 
-app.get("/api/health", (_req, res) => res.json({ status: "ok", service: "SindCopilot", version: "1.2.1" }));
+app.get("/api/health", (_req, res) => res.json({ status: "ok", service: "SindCopilot", version: "1.3.0" }));
 
 app.delete("/api/account", async (req, res) => {
   try {
@@ -161,6 +163,18 @@ app.delete("/api/account", async (req, res) => {
           .remove(keys.slice(index, index + 100));
         if (error) console.error("[Account deletion storage]", error);
       }
+
+      const { data: evidenceFiles, error: evidenceError } = await supabaseAdmin
+        .from("occurrence_evidence")
+        .select("file_key")
+        .eq("user_id", ownerId);
+      if (!evidenceError) {
+        const evidenceKeys = (evidenceFiles || []).map((row: any) => row.file_key).filter(Boolean);
+        for (let index = 0; index < evidenceKeys.length; index += 100) {
+          const { error } = await supabaseAdmin.storage.from("occurrence-evidence").remove(evidenceKeys.slice(index, index + 100));
+          if (error) console.error("[Account deletion occurrence evidence]", error);
+        }
+      }
     }
 
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
@@ -180,6 +194,7 @@ app.post("/api/cron/compliance", async (req, res) => {
 
 app.use("/api/assistant", assistantApiRouter);
 app.use("/api/field-visits", fieldVisitsRouter);
+app.use("/api/occurrences", occurrencesRouter);
 app.use("/api/trpc", createExpressMiddleware({
   router: appRouter,
   createContext,

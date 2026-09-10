@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Building2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-const LGPD_VERSION = "2.0";
+const LGPD_VERSION = "2.1";
 
 export default function Register() {
   const [name, setName] = useState("");

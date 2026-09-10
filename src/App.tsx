@@ -9,6 +9,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 const Landing = lazy(() => import("@/pages/Landing"));
 const Home = lazy(() => import("@/pages/Home"));
 const ModoVisita = lazy(() => import("@/pages/ModoVisita"));
+const Ocorrencias = lazy(() => import("@/pages/Ocorrencias"));
 const Condominios = lazy(() => import("@/pages/Condominios"));
 const CondominioDetail = lazy(() => import("@/pages/CondominioDetail"));
 const Documentos = lazy(() => import("@/pages/Documentos"));
@@ -56,6 +57,7 @@ export default function App() {
               <Route path="/exclusao-de-conta" component={ExclusaoConta} />
               <Route path="/dashboard">{() => <Private><Home /></Private>}</Route>
               <Route path="/visitas">{() => <Private><ModoVisita /></Private>}</Route>
+              <Route path="/ocorrencias">{() => <Private><Ocorrencias /></Private>}</Route>
               <Route path="/condominios/:id">{() => <Private><CondominioDetail /></Private>}</Route>
               <Route path="/condominios">{() => <Private><Condominios /></Private>}</Route>
               <Route path="/documentos">{() => <Private><Documentos /></Private>}</Route>

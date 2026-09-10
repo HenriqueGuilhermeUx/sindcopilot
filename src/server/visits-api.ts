@@ -3,6 +3,7 @@ import { z } from "zod";
 import { resolveContextUser, type ContextUser } from "./core/context";
 import { supabaseAdmin } from "./core/supabase";
 import * as db from "./services/data";
+import { createOccurrenceFromVisit } from "./occurrences-api";
 
 const itemSchema = z.object({
   clientId: z.string().min(1).max(80),
@@ -204,10 +205,24 @@ fieldVisitsRouter.post("/complete", async (req: AuthRequest, res) => {
     if (itemsError) throw itemsError;
 
     const generatedObligationIds: number[] = [];
+    const generatedOccurrenceIds: number[] = [];
     for (const item of input.items) {
-      if (!item.dueDate || !["attention", "urgent"].includes(item.status)) continue;
+      if (["attention", "urgent"].includes(item.status)) {
+        const occurrenceId = await createOccurrenceFromVisit(user, {
+          condominiumId: input.condominiumId,
+          visitId,
+          title: item.title,
+          description: `${item.area}${item.notes ? ` — ${item.notes}` : " — Achado registrado durante a vistoria."}`,
+          area: item.area,
+          severity: item.status === "urgent" ? "urgent" : "medium",
+          documentId: item.documentId || null,
+          happenedAt: completedAt,
+        });
+        generatedOccurrenceIds.push(occurrenceId);
+      }
 
-      const id = await db.createObligation(access(user), {
+      if (!item.dueDate || !["attention", "urgent"].includes(item.status)) continue;
+      const obligationId = await db.createObligation(access(user), {
         condominiumId: input.condominiumId,
         title: `[Visita] ${item.title}`,
         description: `${item.area}${item.notes ? ` — ${item.notes}` : ""}`,
@@ -217,14 +232,14 @@ fieldVisitsRouter.post("/complete", async (req: AuthRequest, res) => {
         isRecurring: false,
         notes: `Gerado automaticamente pela visita #${visitId}. Prioridade: ${item.status === "urgent" ? "urgente" : "atenção"}.`,
       });
-      generatedObligationIds.push(id);
+      generatedObligationIds.push(obligationId);
     }
 
     await db.createActivity(access(user), {
       condominiumId: input.condominiumId,
       type: "field_visit_completed",
       title: `Visita concluída: ${stats.urgentCount} urgente(s), ${stats.attentionCount} atenção`,
-      metadata: { visitId, ...stats },
+      metadata: { visitId, ...stats, generatedOccurrenceIds },
     });
 
     return res.status(201).json({
@@ -232,6 +247,7 @@ fieldVisitsRouter.post("/complete", async (req: AuthRequest, res) => {
       completedAt,
       ...stats,
       generatedObligationIds,
+      generatedOccurrenceIds,
     });
   } catch (error) {
     if (visitId) {

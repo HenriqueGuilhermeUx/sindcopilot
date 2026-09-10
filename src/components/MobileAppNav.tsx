@@ -9,6 +9,7 @@ import {
   Home,
   MessageSquare,
   Plus,
+  ShieldCheck,
   User,
   Users,
   X,
@@ -24,13 +25,15 @@ const mainItems = [
 ] as const;
 
 const quickActions = [
+  { label: "Registrar ocorrência", detail: "Fato, unidade, evidências e histórico", path: "/ocorrencias", icon: ShieldCheck },
   { label: "Iniciar visita", detail: "Checklist, fotos e relatório", path: "/visitas", icon: ClipboardCheck },
-  { label: "Adicionar documento", detail: "Abra Documentos e toque em Upload", path: "/documentos", icon: FileText },
-  { label: "Adicionar pendência", detail: "Abra Pendências e toque em Nova Obrigação", path: "/compliance", icon: CalendarCheck },
+  { label: "Adicionar documento", detail: "Notas, contratos, convenção e regimento", path: "/documentos", icon: FileText },
+  { label: "Adicionar pendência", detail: "Prazo, obrigação e acompanhamento", path: "/compliance", icon: CalendarCheck },
   { label: "Perguntar à IA", detail: "Convenção, regimento e rotina", path: "/assistente", icon: MessageSquare },
 ] as const;
 
 const moreItems = [
+  { label: "Ocorrências", path: "/ocorrencias", icon: ShieldCheck },
   { label: "Condomínios", path: "/condominios", icon: Building2 },
   { label: "Documentos", path: "/documentos", icon: FileText },
   { label: "Notificações", path: "/notificacoes", icon: Bell },
@@ -56,7 +59,7 @@ export default function MobileAppNav() {
       {panel && (
         <div className="fixed inset-0 z-[70] flex items-end lg:hidden">
           <button aria-label="Fechar painel" className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setPanel(null)} />
-          <section className="relative w-full rounded-t-[2rem] bg-background px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-4 shadow-2xl">
+          <section className="relative max-h-[85vh] w-full overflow-y-auto rounded-t-[2rem] bg-background px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-4 shadow-2xl">
             <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-300" />
             <div className="mb-4 flex items-center justify-between">
               <div>
