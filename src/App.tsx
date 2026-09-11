@@ -5,8 +5,10 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import DashboardLayout from "@/components/DashboardLayout";
+import { isNativeApp } from "@/lib/runtime";
 
 const Landing = lazy(() => import("@/pages/Landing"));
+const NativeWelcome = lazy(() => import("@/pages/NativeWelcome"));
 const Home = lazy(() => import("@/pages/Home"));
 const ModoVisita = lazy(() => import("@/pages/ModoVisita"));
 const Ocorrencias = lazy(() => import("@/pages/Ocorrencias"));
@@ -28,6 +30,8 @@ const Register = lazy(() => import("@/pages/Register"));
 const Invite = lazy(() => import("@/pages/Invite"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
+const RootPage = isNativeApp ? NativeWelcome : Landing;
+
 function LoadingScreen() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">
@@ -48,7 +52,7 @@ export default function App() {
           <Toaster richColors position="top-right" />
           <Suspense fallback={<LoadingScreen />}>
             <Switch>
-              <Route path="/" component={Landing} />
+              <Route path="/" component={RootPage} />
               <Route path="/login" component={Login} />
               <Route path="/cadastro" component={Register} />
               <Route path="/convite/:token" component={Invite} />
