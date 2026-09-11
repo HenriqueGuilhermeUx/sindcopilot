@@ -55,7 +55,9 @@ export async function processFinancialDocument(access: Access, documentId: numbe
     const shared = await sharedIntelligenceForDocument(doc, buffer);
     if (shared) {
       const fields = avResultToFinancialFields(shared);
-      const hasUsefulResult = Boolean(fields.ocrSupplierName || fields.ocrValueCents != null || fields.ocrDate || shared.confidence);
+      // Confidence alone is not enough to replace the proven local extractor.
+      // If the shared layer cannot identify a core financial field, keep the old production path.
+      const hasUsefulResult = Boolean(fields.ocrSupplierName || fields.ocrValueCents != null || fields.ocrDate);
       if (hasUsefulResult) {
         await data.updateDocument(access, documentId, { ...fields, ocrStatus: "completed" });
         return {
