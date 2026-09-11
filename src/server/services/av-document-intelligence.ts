@@ -75,26 +75,28 @@ export async function analyzeWithAvDocumentIntelligence(input: {
       },
       body: JSON.stringify({
         consumer: "sindcopilot",
-        provider: "internal",
+        intakeProvider: "auto",
         documentType: input.documentType || "auto",
         text,
+        allowExternalProcessing: false,
+        includeText: false,
         file: {
           name: input.fileName || "documento",
           mimeType: input.mimeType || "text/plain",
           pages: input.pages || 1,
         },
       }),
-      signal: AbortSignal.timeout(15_000),
+      signal: AbortSignal.timeout(20_000),
     });
   } catch (error) {
-    console.warn("[AV Document Intelligence transport]", error);
-    throw serviceUnavailable("AV Document Intelligence temporariamente indisponível");
+    console.warn("[AV Document Intake transport]", error);
+    throw serviceUnavailable("AV Document Intake temporariamente indisponível");
   }
 
   const payload = await response.json().catch(() => null) as any;
   if (!response.ok || !payload?.ok || !payload?.result) {
-    console.warn("[AV Document Intelligence]", response.status, payload?.error || "invalid response");
-    throw serviceUnavailable("AV Document Intelligence não retornou uma análise válida");
+    console.warn("[AV Document Intake]", response.status, payload?.error || "invalid response");
+    throw serviceUnavailable("AV Document Intake não retornou uma análise válida");
   }
   return payload.result as AvDocumentIntelligenceResult;
 }
