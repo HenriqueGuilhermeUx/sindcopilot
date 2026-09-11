@@ -26,6 +26,8 @@ export type AvDocumentIntelligenceResult = {
   metadata?: Record<string, unknown>;
 };
 
+const AV_INTAKE_URL = "https://alternativeventures.com.br/api/document-intelligence/intake";
+
 const SIND_TYPE_MAP: Record<string, AvDocumentType> = {
   nota_fiscal: "fiscal_document",
   recibo: "receipt",
@@ -42,8 +44,7 @@ const SIND_TYPE_MAP: Record<string, AvDocumentType> = {
 export function avDocumentIntelligenceConfigured() {
   return Boolean(
     ENV.AV_DOCUMENT_INTELLIGENCE_ENABLED &&
-    ENV.AV_DOCUMENT_INTELLIGENCE_KEY &&
-    ENV.AV_DOCUMENT_INTELLIGENCE_URL,
+    ENV.AV_DOCUMENT_INTELLIGENCE_KEY,
   );
 }
 
@@ -67,7 +68,7 @@ export async function analyzeWithAvDocumentIntelligence(input: {
 
   let response: Response;
   try {
-    response = await fetch(ENV.AV_DOCUMENT_INTELLIGENCE_URL, {
+    response = await fetch(AV_INTAKE_URL, {
       method: "POST",
       headers: {
         "content-type": "application/json",
