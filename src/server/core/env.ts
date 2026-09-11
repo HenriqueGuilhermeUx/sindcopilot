@@ -12,7 +12,7 @@ const schema = z.object({
   OPENAI_MODEL: z.string().default("gpt-5-mini"),
   OPENAI_EMBEDDING_MODEL: z.string().default("text-embedding-3-small"),
   AV_DOCUMENT_INTELLIGENCE_ENABLED: z.enum(["true","false"]).default("false").transform(v=>v==="true"),
-  AV_DOCUMENT_INTELLIGENCE_URL: z.string().url().default("https://alternativeventures.com.br/api/document-intelligence/extract"),
+  AV_DOCUMENT_INTELLIGENCE_URL: z.string().url().default("https://alternativeventures.com.br/api/document-intelligence/intake"),
   AV_DOCUMENT_INTELLIGENCE_KEY: z.string().min(24).optional(),
   WOOVI_API_URL: z.string().url().default("https://api.woovi.com"),
   WOOVI_APP_ID: z.string().min(10).optional(),
