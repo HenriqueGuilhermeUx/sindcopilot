@@ -7,6 +7,7 @@ import {
   FileText,
   Grid3X3,
   Home,
+  Landmark,
   MessageSquare,
   Plus,
   ShieldCheck,
@@ -26,6 +27,7 @@ const mainItems = [
 
 const quickActions = [
   { label: "Registrar ocorrência", detail: "Fato, unidade, evidências e histórico", path: "/ocorrencias", icon: ShieldCheck },
+  { label: "Importar extrato", detail: "Financeiro, conciliação e balancete", path: "/financeiro", icon: Landmark },
   { label: "Iniciar visita", detail: "Checklist, fotos e relatório", path: "/visitas", icon: ClipboardCheck },
   { label: "Adicionar documento", detail: "Notas, contratos, convenção e regimento", path: "/documentos", icon: FileText },
   { label: "Adicionar pendência", detail: "Prazo, obrigação e acompanhamento", path: "/compliance", icon: CalendarCheck },
@@ -34,6 +36,7 @@ const quickActions = [
 
 const moreItems = [
   { label: "Ocorrências", path: "/ocorrencias", icon: ShieldCheck },
+  { label: "Financeiro", path: "/financeiro", icon: Landmark },
   { label: "Condomínios", path: "/condominios", icon: Building2 },
   { label: "Documentos", path: "/documentos", icon: FileText },
   { label: "Notificações", path: "/notificacoes", icon: Bell },
@@ -58,7 +61,7 @@ export default function MobileAppNav() {
     <>
       {panel && (
         <div className="fixed inset-0 z-[70] flex items-end lg:hidden">
-          <button aria-label="Fechar painel" className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setPanel(null)} />
+          <button type="button" aria-label="Fechar painel" className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setPanel(null)} />
           <section className="relative max-h-[85vh] w-full overflow-y-auto rounded-t-[2rem] bg-background px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-4 shadow-2xl">
             <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-300" />
             <div className="mb-4 flex items-center justify-between">
@@ -66,7 +69,7 @@ export default function MobileAppNav() {
                 <p className="text-lg font-bold">{panel === "quick" ? "Registrar agora" : "Mais ferramentas"}</p>
                 <p className="text-sm text-muted-foreground">Tudo importante em poucos toques.</p>
               </div>
-              <button aria-label="Fechar painel" title="Fechar" className="grid h-10 w-10 place-items-center rounded-full bg-muted" onClick={() => setPanel(null)}>
+              <button type="button" aria-label="Fechar painel" title="Fechar" className="grid h-10 w-10 place-items-center rounded-full bg-muted" onClick={() => setPanel(null)}>
                 <X className="h-5 w-5" aria-hidden="true" />
               </button>
             </div>
@@ -76,6 +79,7 @@ export default function MobileAppNav() {
                 const Icon = item.icon;
                 return (
                   <button
+                    type="button"
                     key={`${item.label}-${item.path}`}
                     onClick={() => void go(item.path)}
                     className="flex min-h-20 items-center gap-3 rounded-2xl border bg-card p-4 text-left shadow-sm transition active:scale-[.98]"
@@ -97,22 +101,22 @@ export default function MobileAppNav() {
 
       <nav className="fixed inset-x-0 bottom-0 z-[60] border-t bg-background/95 px-2 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(15,23,42,.08)] backdrop-blur lg:hidden" aria-label="Navegação principal">
         <div className="mx-auto grid h-[72px] max-w-xl grid-cols-5 items-end">
-          <button onClick={() => void go(mainItems[0].path)} className={cn("flex h-full flex-col items-center justify-center gap-1 text-[11px]", selected(mainItems[0].path) ? "font-bold text-blue-600" : "text-muted-foreground")}>
+          <button type="button" onClick={() => void go(mainItems[0].path)} className={cn("flex h-full flex-col items-center justify-center gap-1 text-[11px]", selected(mainItems[0].path) ? "font-bold text-blue-600" : "text-muted-foreground")}>
             <Home className="h-5 w-5" aria-hidden="true" /> Hoje
           </button>
-          <button onClick={() => void go(mainItems[1].path)} className={cn("flex h-full flex-col items-center justify-center gap-1 text-[11px]", selected(mainItems[1].path) ? "font-bold text-blue-600" : "text-muted-foreground")}>
+          <button type="button" onClick={() => void go(mainItems[1].path)} className={cn("flex h-full flex-col items-center justify-center gap-1 text-[11px]", selected(mainItems[1].path) ? "font-bold text-blue-600" : "text-muted-foreground")}>
             <ClipboardCheck className="h-5 w-5" aria-hidden="true" /> Visitas
           </button>
-          <button onClick={async () => { await impact(); setPanel("quick"); }} className="relative flex h-full flex-col items-center justify-end gap-1 pb-2 text-[11px] font-bold text-blue-700" aria-label="Abrir ações rápidas de registro">
+          <button type="button" onClick={async () => { await impact(); setPanel("quick"); }} className="relative flex h-full flex-col items-center justify-end gap-1 pb-2 text-[11px] font-bold text-blue-700" aria-label="Abrir ações rápidas de registro">
             <span className="absolute -top-5 grid h-14 w-14 place-items-center rounded-full border-4 border-background bg-blue-600 text-white shadow-xl shadow-blue-600/30">
               <Plus className="h-7 w-7" aria-hidden="true" />
             </span>
             Registrar
           </button>
-          <button onClick={() => void go(mainItems[2].path)} className={cn("flex h-full flex-col items-center justify-center gap-1 text-[11px]", selected(mainItems[2].path) ? "font-bold text-blue-600" : "text-muted-foreground")}>
+          <button type="button" onClick={() => void go(mainItems[2].path)} className={cn("flex h-full flex-col items-center justify-center gap-1 text-[11px]", selected(mainItems[2].path) ? "font-bold text-blue-600" : "text-muted-foreground")}>
             <CalendarCheck className="h-5 w-5" aria-hidden="true" /> Pendências
           </button>
-          <button onClick={async () => { await impact(); setPanel("more"); }} className="flex h-full flex-col items-center justify-center gap-1 text-[11px] text-muted-foreground" aria-label="Abrir mais ferramentas">
+          <button type="button" onClick={async () => { await impact(); setPanel("more"); }} className="flex h-full flex-col items-center justify-center gap-1 text-[11px] text-muted-foreground" aria-label="Abrir mais ferramentas">
             <Grid3X3 className="h-5 w-5" aria-hidden="true" /> Mais
           </button>
         </div>
