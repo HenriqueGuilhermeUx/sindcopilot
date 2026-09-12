@@ -6,6 +6,7 @@ import {
   ClipboardCheck,
   Crown,
   FileText,
+  Landmark,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -37,6 +38,7 @@ const items = [
   [LayoutDashboard, "Dashboard", "/dashboard"],
   [ClipboardCheck, "Modo Visita", "/visitas"],
   [ShieldCheck, "Ocorrências", "/ocorrencias"],
+  [Landmark, "Financeiro", "/financeiro"],
   [Building2, "Condomínios", "/condominios"],
   [FileText, "Documentos", "/documentos"],
   [CalendarCheck, "Compliance", "/compliance"],
@@ -80,7 +82,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <p className="font-bold">SindCopilot</p>
           <p className="text-xs text-slate-400">Centro de comando</p>
         </div>
-        <button className="ml-auto lg:hidden" onClick={() => setOpen(false)}>
+        <button type="button" aria-label="Fechar menu" className="ml-auto lg:hidden" onClick={() => setOpen(false)}>
           <X className="h-5 w-5" />
         </button>
       </div>
@@ -88,6 +90,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
         {items.map(([Icon, label, path]) => (
           <button
+            type="button"
             key={path}
             onClick={() => nav(path)}
             className={cn(
@@ -97,17 +100,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 : "text-slate-300 hover:bg-white/5 hover:text-white",
               path === "/visitas" && location !== path && "border border-cyan-400/20 bg-cyan-500/5",
               path === "/ocorrencias" && location !== path && "border border-blue-400/10 bg-blue-500/5",
+              path === "/financeiro" && location !== path && "border border-emerald-400/10 bg-emerald-500/5",
             )}
           >
             <Icon className="h-4 w-4" />
             {label}
             {path === "/visitas" && <span className="ml-auto rounded-full bg-cyan-400/15 px-2 py-0.5 text-[10px] text-cyan-200">CAMPO</span>}
             {path === "/ocorrencias" && <span className="ml-auto rounded-full bg-blue-400/15 px-2 py-0.5 text-[10px] text-blue-200">CASOS</span>}
+            {path === "/financeiro" && <span className="ml-auto rounded-full bg-emerald-400/15 px-2 py-0.5 text-[10px] text-emerald-200">NOVO</span>}
           </button>
         ))}
         <div className="my-3 border-t border-white/10" />
         {visibleLower.map(([Icon, label, path]) => (
           <button
+            type="button"
             key={path}
             onClick={() => nav(path)}
             className={cn(
@@ -135,14 +141,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {open && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <button className="absolute inset-0 bg-black/60" onClick={() => setOpen(false)} />
+          <button type="button" aria-label="Fechar menu" className="absolute inset-0 bg-black/60" onClick={() => setOpen(false)} />
           <div className="relative h-full w-72"><Sidebar /></div>
         </div>
       )}
 
       <div className="pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-0 lg:pl-72">
         <header className="sticky top-0 z-30 flex h-16 items-center border-b bg-background/95 px-4 backdrop-blur sm:px-6">
-          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(true)}>
+          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(true)} aria-label="Abrir menu">
             <Menu className="h-5 w-5" />
           </Button>
 
@@ -153,12 +159,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           )}
 
           <div className="ml-auto flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={toggleTheme}>
+            <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Alternar tema">
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 rounded-full p-1 hover:bg-muted">
+                <button type="button" className="flex items-center gap-2 rounded-full p-1 hover:bg-muted">
                   <Avatar className="h-9 w-9">
                     <AvatarFallback>{(user.name || user.email || "U").slice(0, 2).toUpperCase()}</AvatarFallback>
                   </Avatar>
