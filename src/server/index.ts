@@ -15,6 +15,7 @@ import { runComplianceSweep } from "./services/compliance";
 import { fieldVisitsRouter } from "./visits-api";
 import { assistantApiRouter } from "./assistant-api";
 import { occurrencesRouter } from "./occurrences-api";
+import { financeRouter } from "./finance-api";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -116,9 +117,10 @@ app.use(express.urlencoded({ extended: true, limit: "36mb" }));
 app.use("/api", rateLimit({ windowMs: 60_000, limit: 180, standardHeaders: "draft-7", legacyHeaders: false }));
 app.use("/api/assistant", rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: "draft-7", legacyHeaders: false }));
 app.use("/api/occurrences", rateLimit({ windowMs: 60_000, limit: 90, standardHeaders: "draft-7", legacyHeaders: false }));
+app.use("/api/finance", rateLimit({ windowMs: 60_000, limit: 80, standardHeaders: "draft-7", legacyHeaders: false }));
 app.use("/api/trpc/ai", rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: "draft-7", legacyHeaders: false }));
 
-app.get("/api/health", (_req, res) => res.json({ status: "ok", service: "SindCopilot", version: "1.3.0" }));
+app.get("/api/health", (_req, res) => res.json({ status: "ok", service: "SindCopilot", version: "1.4.0" }));
 
 app.delete("/api/account", async (req, res) => {
   try {
@@ -175,6 +177,18 @@ app.delete("/api/account", async (req, res) => {
           if (error) console.error("[Account deletion occurrence evidence]", error);
         }
       }
+
+      const { data: financeFiles, error: financeError } = await supabaseAdmin
+        .from("financial_statements")
+        .select("file_key")
+        .eq("user_id", ownerId);
+      if (!financeError) {
+        const financeKeys = (financeFiles || []).map((row: any) => row.file_key).filter(Boolean);
+        for (let index = 0; index < financeKeys.length; index += 100) {
+          const { error } = await supabaseAdmin.storage.from("finance-statements").remove(financeKeys.slice(index, index + 100));
+          if (error) console.error("[Account deletion finance]", error);
+        }
+      }
     }
 
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
@@ -195,6 +209,7 @@ app.post("/api/cron/compliance", async (req, res) => {
 app.use("/api/assistant", assistantApiRouter);
 app.use("/api/field-visits", fieldVisitsRouter);
 app.use("/api/occurrences", occurrencesRouter);
+app.use("/api/finance", financeRouter);
 app.use("/api/trpc", createExpressMiddleware({
   router: appRouter,
   createContext,
