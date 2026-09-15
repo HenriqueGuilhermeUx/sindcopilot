@@ -2,6 +2,7 @@ import { Router, type Request } from "express";
 import { ENV } from "./core/env";
 import { supabaseAdmin } from "./core/supabase";
 import { mapSindCopilotRole, type NexOfficeMemberRole, type SindCopilotAccountRole } from "./nexoffice-identity";
+import { syncCondoSignals } from "./nexoffice-signals";
 
 export const nexofficeRouter = Router();
 
@@ -100,18 +101,25 @@ function provisionBody(profile: AccountProfile, owner: AccountProfile, ownerId: 
   };
 }
 
+async function ensureNexOfficeAccount(account: NonNullable<Awaited<ReturnType<typeof authenticatedAccount>>>) {
+  if (!account.owner.email) throw Object.assign(new Error("account_owner_email_required"), { status: 409 });
+  await nexoffice("/v1/platform/provision", "POST", provisionBody(account.owner, account.owner, account.ownerId, "owner"));
+  if (account.current.id !== account.ownerId) await nexoffice("/v1/platform/provision", "POST", provisionBody(account.current, account.owner, account.ownerId, account.memberRole));
+}
+
 nexofficeRouter.get("/health", async (req, res) => {
   try {
     const account = await authenticatedAccount(req);
     if (!account) return res.status(401).json({ ok: false, error: "unauthorized" });
     const configured = Boolean(ENV.NEXOFFICE_BASE_URL && ENV.NEXOFFICE_INTERNAL_KEY);
-    if (!configured) return res.json({ ok: true, configured: false, reachable: false, featureEnabled: process.env.VITE_NEXOFFICE_ENABLED === "true", capabilities: [], externalEffects: false });
+    if (!configured) return res.json({ ok: true, configured: false, reachable: false, featureEnabled: process.env.VITE_NEXOFFICE_ENABLED === "true", capabilities: [], externalEffects: false, condoSignalsEnabled: ENV.NEXOFFICE_CONDO_SIGNALS_ENABLED });
     const upstream = await nexoffice<any>("/v1/platform/health", "GET");
     return res.json({
       ok: true,
       configured: true,
       reachable: true,
       featureEnabled: process.env.VITE_NEXOFFICE_ENABLED === "true",
+      condoSignalsEnabled: ENV.NEXOFFICE_CONDO_SIGNALS_ENABLED,
       service: String(upstream?.service || "nexoffice-platform"),
       capabilities: Array.isArray(upstream?.capabilities) ? upstream.capabilities : [],
       externalEffects: upstream?.externalEffects === true,
@@ -125,19 +133,25 @@ nexofficeRouter.get("/health", async (req, res) => {
   }
 });
 
+nexofficeRouter.post("/signals/sync", async (req, res) => {
+  try {
+    const account = await authenticatedAccount(req);
+    if (!account) return res.status(401).json({ ok: false, error: "unauthorized" });
+    await ensureNexOfficeAccount(account);
+    const result = await syncCondoSignals(account.ownerId);
+    return res.json({ ok: true, ...result });
+  } catch (error: any) {
+    console.error("[SindCopilot NexOffice condo signals]", error?.message || error);
+    const status = Number(error?.status || 502);
+    return res.status(status >= 400 && status < 600 ? status : 502).json({ ok: false, error: error?.code || error?.message || "nexoffice_signal_sync_failed" });
+  }
+});
+
 nexofficeRouter.post("/handoff", async (req, res) => {
   try {
     const account = await authenticatedAccount(req);
     if (!account) return res.status(401).json({ ok: false, error: "unauthorized" });
-    if (!account.owner.email) return res.status(409).json({ ok: false, error: "account_owner_email_required" });
-
-    // Garante primeiro o titular real da conta. Assim um assistente nunca cria
-    // sozinho um workspace compartilhado sem owner.
-    await nexoffice("/v1/platform/provision", "POST", provisionBody(account.owner, account.owner, account.ownerId, "owner"));
-
-    if (account.current.id !== account.ownerId) {
-      await nexoffice("/v1/platform/provision", "POST", provisionBody(account.current, account.owner, account.ownerId, account.memberRole));
-    }
+    await ensureNexOfficeAccount(account);
 
     const handoff = await nexoffice<any>("/v1/platform/handoff", "POST", {
       sourceProduct: "sindcopilot",
@@ -146,6 +160,9 @@ nexofficeRouter.post("/handoff", async (req, res) => {
       email: String(account.current.email || account.authUser.email).toLowerCase(),
     });
     if (!handoff?.url || !handoff?.expiresAt) return res.status(502).json({ ok: false, error: "invalid_nexoffice_handoff" });
+
+    // Best effort only. Opening NexOffice must never fail because telemetry sync failed.
+    void syncCondoSignals(account.ownerId).catch(error => console.error("[SindCopilot NexOffice background signals]", error?.message || error));
 
     return res.json({
       ok: true,
