@@ -1,29 +1,22 @@
 import { Router, type Request } from "express";
 import { ENV } from "./core/env";
 import { supabaseAdmin } from "./core/supabase";
+import { mapSindCopilotRole, type NexOfficeMemberRole, type SindCopilotAccountRole } from "./nexoffice-identity";
 
 export const nexofficeRouter = Router();
 
-type AccountRole = "owner" | "assistant" | "viewer";
-type NexOfficeRole = "owner" | "admin" | "member" | "viewer";
 type AccountProfile = {
   id: string;
   email: string | null;
   name: string | null;
   company: string | null;
   account_owner_id: string | null;
-  account_role: AccountRole | null;
+  account_role: SindCopilotAccountRole | null;
 };
 
 function bearer(req: Request) {
   const authorization = req.headers.authorization || "";
   return authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
-}
-
-export function mapSindCopilotRole(role: string | null | undefined, isOwner: boolean): NexOfficeRole {
-  if (isOwner) return "owner";
-  if (role === "viewer") return "viewer";
-  return "member";
 }
 
 async function authenticatedAccount(req: Request) {
@@ -92,7 +85,7 @@ function businessName(owner: AccountProfile) {
   return String(owner.company || owner.name || "Operação SindCopilot").trim().slice(0, 180);
 }
 
-function provisionBody(profile: AccountProfile, owner: AccountProfile, ownerId: string, memberRole: NexOfficeRole) {
+function provisionBody(profile: AccountProfile, owner: AccountProfile, ownerId: string, memberRole: NexOfficeMemberRole) {
   if (!profile.email) throw Object.assign(new Error("profile_email_required"), { status: 409 });
   return {
     sourceProduct: "sindcopilot",
@@ -138,7 +131,7 @@ nexofficeRouter.post("/handoff", async (req, res) => {
     if (!account) return res.status(401).json({ ok: false, error: "unauthorized" });
     if (!account.owner.email) return res.status(409).json({ ok: false, error: "account_owner_email_required" });
 
-    // Sempre garante primeiro o titular real da conta. Assim um assistente nunca cria
+    // Garante primeiro o titular real da conta. Assim um assistente nunca cria
     // sozinho um workspace compartilhado sem owner.
     await nexoffice("/v1/platform/provision", "POST", provisionBody(account.owner, account.owner, account.ownerId, "owner"));
 
