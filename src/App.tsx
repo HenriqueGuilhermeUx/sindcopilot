@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import NexOfficeLauncher from "@/components/NexOfficeLauncher";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { isNativeApp } from "@/lib/runtime";
@@ -51,6 +52,7 @@ export default function App() {
       <ThemeProvider>
         <TooltipProvider>
           <Toaster richColors position="top-right" />
+          <NexOfficeLauncher />
           <Suspense fallback={<LoadingScreen />}>
             <Switch>
               <Route path="/" component={RootPage} />
