@@ -16,6 +16,7 @@ import { fieldVisitsRouter } from "./visits-api";
 import { assistantApiRouter } from "./assistant-api";
 import { occurrencesRouter } from "./occurrences-api";
 import { financeRouter } from "./finance-api";
+import { nexofficeRouter } from "./nexoffice-api";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -120,7 +121,7 @@ app.use("/api/occurrences", rateLimit({ windowMs: 60_000, limit: 90, standardHea
 app.use("/api/finance", rateLimit({ windowMs: 60_000, limit: 80, standardHeaders: "draft-7", legacyHeaders: false }));
 app.use("/api/trpc/ai", rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: "draft-7", legacyHeaders: false }));
 
-app.get("/api/health", (_req, res) => res.json({ status: "ok", service: "SindCopilot", version: "1.4.0" }));
+app.get("/api/health", (_req, res) => res.json({ status: "ok", service: "SindCopilot", version: "1.5.0" }));
 
 app.delete("/api/account", async (req, res) => {
   try {
@@ -206,6 +207,7 @@ app.post("/api/cron/compliance", async (req, res) => {
   catch (error: any) { console.error(error); return res.status(500).json({ error: error?.message || "cron failed" }); }
 });
 
+app.use("/api/nexoffice", nexofficeRouter);
 app.use("/api/assistant", assistantApiRouter);
 app.use("/api/field-visits", fieldVisitsRouter);
 app.use("/api/occurrences", occurrencesRouter);
