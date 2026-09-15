@@ -22,6 +22,7 @@ const schema = z.object({
   CONTACT_EMAIL: z.string().email().default("henriquecampos66@gmail.com"),
   NEXOFFICE_BASE_URL: z.string().url().optional(),
   NEXOFFICE_INTERNAL_KEY: z.string().min(24).optional(),
+  NEXOFFICE_CONDO_SIGNALS_ENABLED: z.enum(["true","false"]).default("false").transform(v=>v==="true"),
 });
 
 const parsed = schema.safeParse(process.env);
