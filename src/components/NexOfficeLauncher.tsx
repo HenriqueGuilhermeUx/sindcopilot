@@ -16,9 +16,10 @@ export default function NexOfficeLauncher() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const enabled = import.meta.env.VITE_NEXOFFICE_ENABLED === "true";
+  const accessToken = session?.access_token;
 
   // Primeiro rollout somente web. Evita handoff externo inesperado no app nativo.
-  if (!enabled || isNativeApp || !user || !session?.access_token) return null;
+  if (!enabled || isNativeApp || !user || !accessToken) return null;
 
   async function openNexOffice() {
     if (busy) return;
@@ -28,7 +29,7 @@ export default function NexOfficeLauncher() {
       const response = await fetch("/api/nexoffice/handoff", {
         method: "POST",
         headers: {
-          authorization: `Bearer ${session.access_token}`,
+          authorization: `Bearer ${accessToken}`,
           "content-type": "application/json",
         },
         body: JSON.stringify({}),
