@@ -59,6 +59,15 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Instalar Android API e Build Tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Carregar configuração pública de produção
         if: env.VITE_SUPABASE_URL == '' || env.VITE_SUPABASE_ANON_KEY == ''
