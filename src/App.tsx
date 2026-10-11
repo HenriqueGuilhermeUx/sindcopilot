@@ -56,6 +56,7 @@ export default function App() {
           <Suspense fallback={<LoadingScreen />}>
             <Switch>
               <Route path="/" component={RootPage} />
+              <Route path="/app" component={NativeWelcome} />
               <Route path="/login" component={Login} />
               <Route path="/cadastro" component={Register} />
               <Route path="/convite/:token" component={Invite} />
