@@ -1,36 +1,49 @@
 {
-  "name": "SindCopilot — Modo Visita",
+  "id": "/app",
+  "name": "SindCopilot",
   "short_name": "SindCopilot",
-  "description": "Checklist, ocorrências, fotos e pendências para síndicos em campo.",
+  "description": "Centro de comando e aplicativo de campo para síndicos profissionais.",
   "lang": "pt-BR",
-  "start_url": "/visitas",
+  "start_url": "/app",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#f8fafc",
+  "background_color": "#0f172a",
   "theme_color": "#0f2f49",
   "categories": ["business", "productivity", "utilities"],
   "icons": [
     {
-      "src": "/pwa-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ],
   "shortcuts": [
     {
-      "name": "Iniciar visita",
-      "short_name": "Visita",
-      "description": "Abrir o modo de campo",
-      "url": "/visitas",
-      "icons": [{ "src": "/pwa-icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+      "name": "Hoje",
+      "short_name": "Hoje",
+      "url": "/dashboard",
+      "icons": [{"src":"/app-icon-512.png","sizes":"512x512","type":"image/png"}]
     },
     {
-      "name": "Dashboard",
-      "short_name": "Painel",
-      "url": "/dashboard",
-      "icons": [{ "src": "/pwa-icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+      "name": "Modo Visita",
+      "short_name": "Visitas",
+      "url": "/visitas",
+      "icons": [{"src":"/app-icon-512.png","sizes":"512x512","type":"image/png"}]
+    },
+    {
+      "name": "Pendências",
+      "short_name": "Pendências",
+      "url": "/compliance",
+      "icons": [{"src":"/app-icon-512.png","sizes":"512x512","type":"image/png"}]
+    },
+    {
+      "name": "Registrar ocorrência",
+      "short_name": "Registrar",
+      "url": "/ocorrencias",
+      "icons": [{"src":"/app-icon-512.png","sizes":"512x512","type":"image/png"}]
     }
-  ]
+  ],
+  "prefer_related_applications": false
 }

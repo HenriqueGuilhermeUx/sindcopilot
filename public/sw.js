@@ -1,14 +1,13 @@
-const CACHE_NAME = "sindcopilot-field-v1";
-const APP_SHELL = ["/", "/visitas", "/manifest.webmanifest", "/pwa-icon.svg"];
+const CACHE_NAME = "sindcopilot-app-v2";
+const APP_SHELL = ["/app", "/visitas", "/manifest.webmanifest", "/app-icon-512.png"];
 
 self.addEventListener("install", event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).catch(() => undefined).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", event => {
   event.waitUntil(
-    caches
-      .keys()
+    caches.keys()
       .then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
       .then(() => self.clients.claim()),
   );
@@ -17,7 +16,6 @@ self.addEventListener("activate", event => {
 self.addEventListener("fetch", event => {
   const request = event.request;
   if (request.method !== "GET") return;
-
   const url = new URL(request.url);
   if (url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
 
@@ -26,28 +24,21 @@ self.addEventListener("fetch", event => {
       fetch(request)
         .then(response => {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+          caches.open(CACHE_NAME).then(cache => cache.put(request, copy)).catch(() => undefined);
           return response;
         })
-        .catch(async () => {
-          return (await caches.match(request)) || (await caches.match("/visitas")) || (await caches.match("/"));
-        }),
+        .catch(async () => (await caches.match(request)) || (await caches.match("/visitas")) || (await caches.match("/app"))),
     );
     return;
   }
 
   event.respondWith(
-    caches.match(request).then(cached => {
-      const network = fetch(request)
-        .then(response => {
-          if (response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
-          }
-          return response;
-        })
-        .catch(() => cached);
-      return cached || network;
-    }),
+    caches.match(request).then(cached => cached || fetch(request).then(response => {
+      if (response.ok) {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(request, copy)).catch(() => undefined);
+      }
+      return response;
+    }))
   );
 });
