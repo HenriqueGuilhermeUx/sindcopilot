@@ -99,10 +99,8 @@ export async function createWooviSubscription(
         ? "SindCopilot Starter — preço fundador via parceiro"
         : `SindCopilot ${plan.name}`,
       dayGenerateCharge,
-      dayDue: 7,
       frequency: "MONTHLY",
       type: "RECURRENT",
-      chargeType: "DYNAMIC",
       correlationID: subscriptionCorrelationID,
       customer: {
         name: profile.name,
