@@ -523,6 +523,7 @@ export default function Landing() {
               <a href={`mailto:${CONTACT_EMAIL}`}><Mail className="inline h-3 w-3" /> {CONTACT_EMAIL}</a>
               <a href="#app-mobile">App Mobile</a>
               <a href="/termos">Termos</a>
+              <a href="/afiliados">Afiliados</a>
               <a href="/privacidade">Privacidade</a>
             </div>
             <p className="mt-8 text-sm">© {new Date().getFullYear()} SindCopilot.</p>
