@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getLoginUrl } from "@/const";
+import { apiUrl } from "@/lib/runtime";
 import {
   ArrowRight,
   Brain,
@@ -387,6 +388,7 @@ export default function Landing() {
                 </Button>
               </div>
               <p className="mt-6 text-sm text-slate-400">Teste grátis por 7 dias. Sem cartão de crédito.</p>
+              {partnerOffer?.campaign?.remaining > 0 && <div className="mx-auto mt-5 max-w-xl rounded-2xl border border-emerald-300/25 bg-emerald-400/10 px-5 py-4 text-sm text-emerald-100"><strong>Oferta de {partnerOffer.partnerName}:</strong> Starter por <strong>R$ 49,90/mês</strong> para a campanha Fundadores 100. Restam {partnerOffer.campaign.remaining} vagas.</div>}
             </div>
           </div>
         </section>

@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import NexOfficeLauncher from "@/components/NexOfficeLauncher";
+import ReferralCapture from "@/components/ReferralCapture";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { isNativeApp } from "@/lib/runtime";
@@ -30,6 +31,8 @@ const ExclusaoConta = lazy(() => import("@/pages/ExclusaoConta"));
 const Login = lazy(() => import("@/pages/Login"));
 const Register = lazy(() => import("@/pages/Register"));
 const Invite = lazy(() => import("@/pages/Invite"));
+const Parceiros = lazy(() => import("@/pages/Parceiros"));
+const TermosParceiros = lazy(() => import("@/pages/TermosParceiros"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const RootPage = isNativeApp ? NativeWelcome : Landing;
@@ -53,6 +56,7 @@ export default function App() {
         <TooltipProvider>
           <Toaster richColors position="top-right" />
           <NexOfficeLauncher />
+          <ReferralCapture />
           <Suspense fallback={<LoadingScreen />}>
             <Switch>
               <Route path="/" component={RootPage} />
@@ -63,6 +67,8 @@ export default function App() {
               <Route path="/termos" component={Termos} />
               <Route path="/privacidade" component={Privacidade} />
               <Route path="/exclusao-de-conta" component={ExclusaoConta} />
+              <Route path="/parceiros/termos" component={TermosParceiros} />
+              <Route path="/parceiros" component={Parceiros} />
               <Route path="/dashboard">{() => <Private><Home /></Private>}</Route>
               <Route path="/visitas">{() => <Private><ModoVisita /></Private>}</Route>
               <Route path="/ocorrencias">{() => <Private><Ocorrencias /></Private>}</Route>

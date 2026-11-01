@@ -3,6 +3,7 @@ import { ENV } from "../core/env";
 import { supabaseAdmin } from "../core/supabase";
 import { PLANS, type PaidPlanKey } from "../../shared/plans";
 import { badRequest, serviceUnavailable } from "../core/errors";
+import { recordPartnerPayment, resolvePartnerCheckout } from "./partners";
 
 const WOOVI_PUBLIC_KEY_BASE64 =
   "LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlHZk1BMEdDU3FHU0liM0RRRUJBUVVBQTRHTkFEQ0JpUUtCZ1FDLytOdElranpldnZxRCtJM01NdjNiTFhEdApwdnhCalk0QnNSclNkY2EzcnRBd01jUllZdnhTbmQ3amFnVkxwY3RNaU94UU84aWVVQ0tMU1dIcHNNQWpPL3paCldNS2Jxb0c4TU5waS91M2ZwNnp6MG1jSENPU3FZc1BVVUcxOWJ1VzhiaXM1WloySVpnQk9iV1NwVHZKMGNuajYKSEtCQUE4MkpsbitsR3dTMU13SURBUUFCCi0tLS0tRU5EIFBVQkxJQyBLRVktLS0tLQo=";
@@ -23,6 +24,7 @@ function onlyDigits(value: string | null | undefined) {
 async function wooviRequest<T>(path: string, init: RequestInit): Promise<T> {
   const response = await fetch(apiUrl(path), {
     ...init,
+    signal: AbortSignal.timeout(20_000),
     headers: {
       Authorization: appId(),
       "Content-Type": "application/json",
@@ -37,13 +39,34 @@ async function wooviRequest<T>(path: string, init: RequestInit): Promise<T> {
     payload = { raw: text };
   }
   if (!response.ok) {
-    const message = payload?.errors?.[0]?.message || payload?.error || payload?.message || `Woovi respondeu ${response.status}`;
+    const message =
+      payload?.errors?.[0]?.message ||
+      payload?.error ||
+      payload?.message ||
+      `Woovi respondeu ${response.status}`;
     throw serviceUnavailable(message);
   }
   return payload as T;
 }
 
-export async function createWooviSubscription(userId: string, planKey: PaidPlanKey) {
+export async function checkWooviBillingHealth() {
+  if (!ENV.WOOVI_APP_ID) {
+    return { configured: false, reachable: false, provider: "woovi" as const };
+  }
+  try {
+    await wooviRequest<any>("/api/v1/subscriptions", { method: "GET" });
+    return { configured: true, reachable: true, provider: "woovi" as const };
+  } catch (error) {
+    console.error("[Woovi health]", error);
+    return { configured: true, reachable: false, provider: "woovi" as const };
+  }
+}
+
+export async function createWooviSubscription(
+  userId: string,
+  planKey: PaidPlanKey,
+  referralCode?: string | null,
+) {
   const plan = PLANS[planKey];
   if (!plan.priceMonthly) throw badRequest("Plano inválido");
 
@@ -58,15 +81,27 @@ export async function createWooviSubscription(userId: string, planKey: PaidPlanK
   const phone = onlyDigits(profile.phone);
   if (!profile.email) throw badRequest("Complete seu e-mail no perfil antes de assinar");
   if (!profile.name) throw badRequest("Complete seu nome no perfil antes de assinar");
-  if (taxID.length !== 11 && taxID.length !== 14) throw badRequest("Complete um CPF ou CNPJ válido no perfil antes de assinar");
+  if (taxID.length !== 11 && taxID.length !== 14) {
+    throw badRequest("Complete um CPF ou CNPJ válido no perfil antes de assinar");
+  }
   if (phone.length < 10) throw badRequest("Complete seu telefone com DDD no perfil antes de assinar");
 
+  const offer = await resolvePartnerCheckout(userId, planKey, referralCode);
   const dayGenerateCharge = Math.min(new Date().getDate(), 27);
+  const subscriptionCorrelationID = `sindcopilot-${userId}-${crypto.randomUUID()}`;
+
   const result = await wooviRequest<any>("/api/v1/subscriptions", {
     method: "POST",
     body: JSON.stringify({
-      value: plan.priceMonthly,
+      value: offer.priceCents,
+      name: `SindCopilot ${plan.name}`,
+      comment: offer.promoApplied
+        ? "SindCopilot Starter — preço fundador via parceiro"
+        : `SindCopilot ${plan.name}`,
       dayGenerateCharge,
+      frequency: "MONTHLY",
+      type: "RECURRENT",
+      correlationID: subscriptionCorrelationID,
       customer: {
         name: profile.name,
         email: profile.email,
@@ -78,13 +113,17 @@ export async function createWooviSubscription(userId: string, planKey: PaidPlanK
   });
 
   const subscription = result?.subscription;
-  if (!subscription?.globalID) throw serviceUnavailable("A Woovi não retornou o identificador da assinatura");
+  if (!subscription?.globalID) {
+    throw serviceUnavailable("A Woovi não retornou o identificador da assinatura");
+  }
 
   const { error: updateError } = await supabaseAdmin
     .from("users")
     .update({
       plan: planKey,
       woovi_subscription_id: subscription.globalID,
+      woovi_subscription_correlation_id: subscriptionCorrelationID,
+      woovi_subscription_value_cents: offer.priceCents,
       woovi_status: "pending",
       woovi_current_period_end: null,
     })
@@ -95,6 +134,8 @@ export async function createWooviSubscription(userId: string, planKey: PaidPlanK
     subscriptionId: subscription.globalID as string,
     status: "pending" as const,
     dayGenerateCharge: subscription.dayGenerateCharge ?? dayGenerateCharge,
+    priceCents: offer.priceCents,
+    promoApplied: offer.promoApplied,
     message: "Assinatura criada. A Woovi enviará a cobrança Pix pelos dados cadastrados.",
     paymentLinkUrl:
       result?.charge?.paymentLinkUrl ||
@@ -118,7 +159,12 @@ function getCharge(payload: any) {
 
 function makeEventId(payload: any) {
   const charge = getCharge(payload) || {};
-  const identity = charge.globalID || charge.transactionID || charge.identifier || charge.correlationID || crypto.createHash("sha256").update(JSON.stringify(payload)).digest("hex");
+  const identity =
+    charge.globalID ||
+    charge.transactionID ||
+    charge.identifier ||
+    charge.correlationID ||
+    crypto.createHash("sha256").update(JSON.stringify(payload)).digest("hex");
   return `${payload?.event || "WOOVI:UNKNOWN"}:${identity}`;
 }
 
@@ -126,19 +172,23 @@ async function findOwner(payload: any) {
   const charge = getCharge(payload) || {};
   const customer = charge.customer || payload?.pix?.customer || {};
   const correlationID = customer.correlationID;
+  const columns =
+    "id,plan,woovi_status,woovi_current_period_end,woovi_subscription_value_cents";
+
   if (typeof correlationID === "string" && correlationID.length > 20) {
     const { data } = await supabaseAdmin
       .from("users")
-      .select("id,plan,woovi_status,woovi_current_period_end")
+      .select(columns)
       .eq("id", correlationID)
       .maybeSingle();
     if (data) return data;
   }
+
   const email = customer.email;
   if (typeof email === "string" && email.includes("@")) {
     const { data } = await supabaseAdmin
       .from("users")
-      .select("id,plan,woovi_status,woovi_current_period_end")
+      .select(columns)
       .eq("email", email)
       .maybeSingle();
     if (data) return data;
@@ -158,7 +208,12 @@ function nextMonthlyPeriod(currentPeriodEnd: string | null | undefined) {
 export async function processWooviEvent(payload: any) {
   const eventId = makeEventId(payload);
   const eventType = String(payload?.event || "WOOVI:UNKNOWN");
-  const { data: existing } = await supabaseAdmin.from("woovi_events").select("status").eq("id", eventId).maybeSingle();
+
+  const { data: existing } = await supabaseAdmin
+    .from("woovi_events")
+    .select("status")
+    .eq("id", eventId)
+    .maybeSingle();
   if (existing?.status === "processed") return { duplicate: true };
 
   await supabaseAdmin.from("woovi_events").upsert(
@@ -172,9 +227,19 @@ export async function processWooviEvent(payload: any) {
 
     if (eventType === "OPENPIX:CHARGE_COMPLETED") {
       if (!owner) throw badRequest("Usuário da cobrança não encontrado");
-      if (owner.plan !== "starter" && owner.plan !== "pro") throw badRequest("Plano pendente inválido");
-      const expectedValue = PLANS[owner.plan as PaidPlanKey].priceMonthly;
-      if (Number(charge?.value) !== Number(expectedValue)) throw badRequest("Valor da cobrança não corresponde ao plano");
+      if (owner.plan !== "starter" && owner.plan !== "pro") {
+        throw badRequest("Plano pendente inválido");
+      }
+
+      const expectedValue = Number(
+        owner.woovi_subscription_value_cents ||
+          PLANS[owner.plan as PaidPlanKey].priceMonthly,
+      );
+      const paidValue = Number(charge?.value);
+      if (!Number.isFinite(paidValue) || paidValue !== expectedValue) {
+        throw badRequest("Valor da cobrança não corresponde ao plano contratado");
+      }
+
       const { error } = await supabaseAdmin
         .from("users")
         .update({
@@ -183,23 +248,38 @@ export async function processWooviEvent(payload: any) {
         })
         .eq("id", owner.id);
       if (error) throw serviceUnavailable(error.message);
+
+      await recordPartnerPayment(owner.id, eventId, paidValue);
     } else if (eventType === "OPENPIX:CHARGE_EXPIRED" && owner) {
-      const periodEnd = owner.woovi_current_period_end ? new Date(owner.woovi_current_period_end) : null;
+      const periodEnd = owner.woovi_current_period_end
+        ? new Date(owner.woovi_current_period_end)
+        : null;
       if (!periodEnd || periodEnd <= new Date()) {
-        const { error } = await supabaseAdmin.from("users").update({ woovi_status: "past_due" }).eq("id", owner.id);
+        const { error } = await supabaseAdmin
+          .from("users")
+          .update({ woovi_status: "past_due" })
+          .eq("id", owner.id);
         if (error) throw serviceUnavailable(error.message);
       }
     }
 
     await supabaseAdmin
       .from("woovi_events")
-      .update({ status: "processed", processed_at: new Date().toISOString(), error_message: null })
+      .update({
+        status: "processed",
+        processed_at: new Date().toISOString(),
+        error_message: null,
+      })
       .eq("id", eventId);
+
     return { duplicate: false };
   } catch (error: any) {
     await supabaseAdmin
       .from("woovi_events")
-      .update({ status: "failed", error_message: error?.message || "erro" })
+      .update({
+        status: "failed",
+        error_message: error?.message || "erro",
+      })
       .eq("id", eventId);
     throw error;
   }

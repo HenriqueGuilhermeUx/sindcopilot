@@ -2,7 +2,7 @@ import { Building2, ExternalLink, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const CONTACT_EMAIL = "henriquecampos66@gmail.com";
-const EFFECTIVE_DATE = "12 de setembro de 2026";
+const EFFECTIVE_DATE = "1º de novembro de 2026";
 
 export default function Privacidade() {
   return (
@@ -22,7 +22,7 @@ export default function Privacidade() {
           <div className="mb-4 flex items-center gap-3 text-emerald-700"><ShieldCheck className="h-6 w-6" /><span className="font-semibold">Privacidade, transparência e controle dos dados</span></div>
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Política de Privacidade do SindCopilot</h1>
           <p className="mt-4 text-slate-600">Aplicável ao site, painel web, PWA e aplicativo Android <strong>com.sindcopilot.app</strong>.</p>
-          <p className="mt-2 text-sm text-slate-500">Versão 2.2 — vigente desde {EFFECTIVE_DATE}</p>
+          <p className="mt-2 text-sm text-slate-500">Versão 2.3 — vigente desde {EFFECTIVE_DATE}</p>
         </div>
 
         <div className="prose prose-slate max-w-none rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-10">
@@ -46,7 +46,7 @@ export default function Privacidade() {
             <h3>Assinatura e pagamento</h3>
             <ul><li>plano, identificador e status da assinatura, confirmação de cobrança e período de acesso;</li><li>dados necessários à cobrança Pix processada pela Woovi, como nome, e-mail, telefone e CPF/CNPJ.</li></ul>
             <p>O SindCopilot não armazena dados de cartão de crédito.</p>
-            <h3>Dados técnicos e de segurança</h3>
+            <h3>Programa de parceiros</h3>\n            <ul><li>código de indicação, identificador anônimo de clique, origem da indicação e métricas de conversão;</li><li>perfil público/profissional do parceiro, audiência informada, status de habilitação, vendas atribuídas, comissões e chave Pix para pagamento.</li></ul>\n            <p>O painel do parceiro não expõe CPF, telefone, e-mail ou outros dados pessoais dos clientes indicados.</p>\n            <h3>Dados técnicos e de segurança</h3>
             <ul><li>endereço IP, data e horário, navegador, sistema operacional, dispositivo e registros de erro ou acesso;</li><li>ações administrativas, consumo de recursos e eventos necessários a segurança, auditoria, prevenção de fraude e suporte.</li></ul>
           </section>
 
@@ -62,7 +62,7 @@ export default function Privacidade() {
             <p>O aplicativo não solicita acesso à localização em segundo plano, lista de contatos, SMS ou histórico de chamadas.</p>
           </section>
 
-          <section><h2>5. Para que usamos os dados</h2><ul><li>criar, autenticar e administrar contas e permissões;</li><li>entregar as funcionalidades contratadas e sincronizar dados entre web e aplicativo;</li><li>processar documentos, OCR, buscas, relatórios e recursos de inteligência artificial solicitados pelo usuário;</li><li>organizar vistorias, ocorrências, evidências, manifestações, pendências, obrigações, comunicações e histórico operacional;</li><li>importar extratos do condomínio, organizar lançamentos, aplicar regras de classificação, permitir revisão humana, conciliar saldos, fechar períodos e gerar balancetes em PDF;</li><li>permitir rastreabilidade de casos e lançamentos até seus arquivos de origem;</li><li>processar assinaturas, cobranças Pix e confirmação de pagamentos;</li><li>prestar suporte, corrigir falhas, medir limites do plano e proteger a plataforma;</li><li>cumprir obrigações legais, regulatórias, fiscais e exercer direitos em processos.</li></ul></section>
+          <section><h2>5. Para que usamos os dados</h2><ul><li>criar, autenticar e administrar contas e permissões;</li><li>entregar as funcionalidades contratadas e sincronizar dados entre web e aplicativo;</li><li>processar documentos, OCR, buscas, relatórios e recursos de inteligência artificial solicitados pelo usuário;</li><li>organizar vistorias, ocorrências, evidências, manifestações, pendências, obrigações, comunicações e histórico operacional;</li><li>importar extratos do condomínio, organizar lançamentos, aplicar regras de classificação, permitir revisão humana, conciliar saldos, fechar períodos e gerar balancetes em PDF;</li><li>permitir rastreabilidade de casos e lançamentos até seus arquivos de origem;</li><li>processar assinaturas, cobranças Pix e confirmação de pagamentos;</li><li>atribuir indicações a parceiros, aplicar promoções elegíveis, calcular comissões e prevenir fraude no programa de afiliados;</li><li>prestar suporte, corrigir falhas, medir limites do plano e proteger a plataforma;</li><li>cumprir obrigações legais, regulatórias, fiscais e exercer direitos em processos.</li></ul></section>
 
           <section><h2>6. Bases legais</h2><p>Conforme a LGPD, o tratamento pode ocorrer para execução de contrato e procedimentos preliminares, cumprimento de obrigação legal ou regulatória, exercício regular de direitos, prevenção à fraude e segurança, legítimo interesse quando cabível e consentimento nas situações em que ele for necessário. O usuário responsável pela gestão deve possuir base legítima para inserir no SindCopilot dados pessoais de moradores, visitantes, funcionários, fornecedores, testemunhas ou terceiros, inclusive quando tais dados apareçam em descrições de lançamentos bancários.</p></section>
 

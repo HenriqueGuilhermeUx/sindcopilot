@@ -9,7 +9,7 @@ import { appRouter } from "./router";
 import { createContext } from "./core/context";
 import { ENV } from "./core/env";
 import { supabaseAdmin } from "./core/supabase";
-import { processWooviEvent, verifyWooviWebhook } from "./services/woovi";
+import { checkWooviBillingHealth, processWooviEvent, verifyWooviWebhook } from "./services/woovi";
 import { cancelAccountSubscription } from "./services/account-subscription";
 import { runComplianceSweep } from "./services/compliance";
 import { fieldVisitsRouter } from "./visits-api";
@@ -17,6 +17,8 @@ import { assistantApiRouter } from "./assistant-api";
 import { occurrencesRouter } from "./occurrences-api";
 import { financeRouter } from "./finance-api";
 import { nexofficeRouter } from "./nexoffice-api";
+import { partnersRouter } from "./partners-api";
+import { provisionReviewAccounts } from "./services/review-accounts";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -119,9 +121,14 @@ app.use("/api", rateLimit({ windowMs: 60_000, limit: 180, standardHeaders: "draf
 app.use("/api/assistant", rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: "draft-7", legacyHeaders: false }));
 app.use("/api/occurrences", rateLimit({ windowMs: 60_000, limit: 90, standardHeaders: "draft-7", legacyHeaders: false }));
 app.use("/api/finance", rateLimit({ windowMs: 60_000, limit: 80, standardHeaders: "draft-7", legacyHeaders: false }));
+app.use("/api/partners", rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: "draft-7", legacyHeaders: false }));
 app.use("/api/trpc/ai", rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: "draft-7", legacyHeaders: false }));
 
-app.get("/api/health", (_req, res) => res.json({ status: "ok", service: "SindCopilot", version: "1.5.0" }));
+app.get("/api/health", (_req, res) => res.json({ status: "ok", service: "SindCopilot", version: "1.6.0" }));
+app.get("/api/billing/health", async (_req, res) => {
+  const health = await checkWooviBillingHealth();
+  return res.status(health.reachable ? 200 : 503).json(health);
+});
 
 app.delete("/api/account", async (req, res) => {
   try {
@@ -212,6 +219,7 @@ app.use("/api/assistant", assistantApiRouter);
 app.use("/api/field-visits", fieldVisitsRouter);
 app.use("/api/occurrences", occurrencesRouter);
 app.use("/api/finance", financeRouter);
+app.use("/api/partners", partnersRouter);
 app.use("/api/trpc", createExpressMiddleware({
   router: appRouter,
   createContext,
@@ -227,5 +235,7 @@ if (ENV.NODE_ENV === "production") {
     res.sendFile(path.join(clientDir, "index.html"));
   });
 }
+
+void provisionReviewAccounts().catch(error => console.error("[Review accounts]", error));
 
 app.listen(ENV.PORT, "0.0.0.0", () => console.log(`SindCopilot rodando em 0.0.0.0:${ENV.PORT}`));

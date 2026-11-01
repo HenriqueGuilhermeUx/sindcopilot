@@ -9,10 +9,13 @@ export async function createCheckoutSession(
   _email: string,
   _name: string | null,
   planKey: PaidPlanKey,
+  referralCode?: string | null,
 ) {
-  const result = await createWooviSubscription(userId, planKey);
+  const result = await createWooviSubscription(userId, planKey, referralCode);
   return {
     url: result.paymentLinkUrl || `${ENV.APP_URL}/planos?woovi=pending`,
+    priceCents: result.priceCents,
+    promoApplied: result.promoApplied,
   };
 }
 

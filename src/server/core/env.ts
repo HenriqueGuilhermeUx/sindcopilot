@@ -23,6 +23,12 @@ const schema = z.object({
   NEXOFFICE_BASE_URL: z.string().url().optional(),
   NEXOFFICE_INTERNAL_KEY: z.string().min(24).optional(),
   NEXOFFICE_CONDO_SIGNALS_ENABLED: z.enum(["true","false"]).default("false").transform(v=>v==="true"),
+  REVIEW_ACCOUNT_1_EMAIL: z.string().email().optional(),
+  REVIEW_ACCOUNT_1_PASSWORD: z.string().min(12).optional(),
+  REVIEW_ACCOUNT_2_EMAIL: z.string().email().optional(),
+  REVIEW_ACCOUNT_2_PASSWORD: z.string().min(12).optional(),
+  REVIEW_ACCOUNT_3_EMAIL: z.string().email().optional(),
+  REVIEW_ACCOUNT_3_PASSWORD: z.string().min(12).optional(),
 });
 
 const parsed = schema.safeParse(process.env);
