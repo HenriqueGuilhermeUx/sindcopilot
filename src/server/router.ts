@@ -46,7 +46,7 @@ export const appRouter = router({
       const profile:any=await db.getProfile(ctx.user.accountOwnerId);
       return {plan:ent.effectivePlan,storedPlan:ent.storedPlan,trialEndsAt:ent.trialEndsAt,stripeStatus:ent.stripeStatus,maxCondominiums:ent.limits.maxCondominiums,maxAssistants:ent.limits.maxAssistants,limits:ent.limits,usage:ent.usage,stripeCustomerId:profile.stripeCustomerId,stripeSubscriptionId:profile.stripeSubscriptionId};
     }),
-    checkout: ownerProcedure.input(z.object({plan:z.enum(["starter","pro"])})).mutation(async({ctx,input})=>{const session=await createCheckoutSession(ctx.user.id,ctx.user.email||"",ctx.user.name,input.plan);return{url:session.url}}),
+    checkout: ownerProcedure.input(z.object({plan:z.enum(["starter","pro"]),referralCode:z.string().max(50).optional()})).mutation(async({ctx,input})=>{const session=await createCheckoutSession(ctx.user.id,ctx.user.email||"",ctx.user.name,input.plan,input.referralCode||null);return{url:session.url,priceCents:session.priceCents,promoApplied:session.promoApplied}}),
     portal: ownerProcedure.mutation(async({ctx})=>{const profile:any=await db.getProfile(ctx.user.id);if(!profile.stripeCustomerId)throw badRequest("Nenhuma assinatura encontrada");const session=await createPortalSession(profile.stripeCustomerId);return{url:session.url}}),
   }),
 
