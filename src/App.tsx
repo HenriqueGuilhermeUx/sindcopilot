@@ -29,7 +29,7 @@ const Privacidade = lazy(() => import("@/pages/Privacidade"));
 const ExclusaoConta = lazy(() => import("@/pages/ExclusaoConta"));
 const Login = lazy(() => import("@/pages/Login"));
 const Register = lazy(() => import("@/pages/Register"));
-const Invite = lazy(() => import("@/pages/Invite"));\nconst Parceiros = lazy(() => import("@/pages/Parceiros"));
+const Invite = lazy(() => import("@/pages/Invite"));\nconst Parceiros = lazy(() => import("@/pages/Parceiros"));\nconst TermosParceiros = lazy(() => import("@/pages/TermosParceiros"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const RootPage = isNativeApp ? NativeWelcome : Landing;
@@ -62,7 +62,7 @@ export default function App() {
               <Route path="/convite/:token" component={Invite} />
               <Route path="/termos" component={Termos} />
               <Route path="/privacidade" component={Privacidade} />
-              <Route path="/exclusao-de-conta" component={ExclusaoConta} />\n              <Route path="/parceiros" component={Parceiros} />
+              <Route path="/exclusao-de-conta" component={ExclusaoConta} />\n              <Route path="/parceiros/termos" component={TermosParceiros} />\n              <Route path="/parceiros" component={Parceiros} />
               <Route path="/dashboard">{() => <Private><Home /></Private>}</Route>
               <Route path="/visitas">{() => <Private><ModoVisita /></Private>}</Route>
               <Route path="/ocorrencias">{() => <Private><Ocorrencias /></Private>}</Route>
