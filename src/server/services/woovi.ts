@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { ENV } from "../core/env";
 import { supabaseAdmin } from "../core/supabase";
 import { PLANS, type PaidPlanKey } from "../../shared/plans";
-import { badRequest, serviceUnavailable } from "../core/errors";
+import { badRequest, serviceUnavailable } from "../core/errors";\nimport { recordPartnerPayment, resolvePartnerCheckout } from "./partners";
 
 const WOOVI_PUBLIC_KEY_BASE64 =
   "LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlHZk1BMEdDU3FHU0liM0RRRUJBUVVBQTRHTkFEQ0JpUUtCZ1FDLytOdElranpldnZxRCtJM01NdjNiTFhEdApwdnhCalk0QnNSclNkY2EzcnRBd01jUllZdnhTbmQ3amFnVkxwY3RNaU94UU84aWVVQ0tMU1dIcHNNQWpPL3paCldNS2Jxb0c4TU5waS91M2ZwNnp6MG1jSENPU3FZc1BVVUcxOWJ1VzhiaXM1WloySVpnQk9iV1NwVHZKMGNuajYKSEtCQUE4MkpsbitsR3dTMU13SURBUUFCCi0tLS0tRU5EIFBVQkxJQyBLRVktLS0tLQo=";
@@ -43,7 +43,7 @@ async function wooviRequest<T>(path: string, init: RequestInit): Promise<T> {
   return payload as T;
 }
 
-export async function createWooviSubscription(userId: string, planKey: PaidPlanKey) {
+export async function checkWooviBillingHealth() {\n  if (!ENV.WOOVI_APP_ID) return { configured: false, reachable: false, provider: "woovi" as const };\n  try {\n    await wooviRequest<any>("/api/v1/subscriptions", { method: "GET" });\n    return { configured: true, reachable: true, provider: "woovi" as const };\n  } catch (error) {\n    console.error("[Woovi health]", error);\n    return { configured: true, reachable: false, provider: "woovi" as const };\n  }\n}\n\nexport async function createWooviSubscription(userId: string, planKey: PaidPlanKey, referralCode?: string | null) {
   const plan = PLANS[planKey];
   if (!plan.priceMonthly) throw badRequest("Plano inválido");
 
@@ -129,7 +129,7 @@ async function findOwner(payload: any) {
   if (typeof correlationID === "string" && correlationID.length > 20) {
     const { data } = await supabaseAdmin
       .from("users")
-      .select("id,plan,woovi_status,woovi_current_period_end")
+      .select("id,plan,woovi_status,woovi_current_period_end,woovi_subscription_value_cents")
       .eq("id", correlationID)
       .maybeSingle();
     if (data) return data;
