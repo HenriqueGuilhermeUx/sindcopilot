@@ -10,7 +10,7 @@ import { ArrowLeft, Building2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { isNativeApp } from "@/lib/runtime";
 
-const LGPD_VERSION = "2.1";
+const LGPD_VERSION = "2.3";
 
 export default function Register() {
   const [name, setName] = useState("");
