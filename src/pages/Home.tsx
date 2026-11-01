@@ -4,15 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Building2, Home as HomeIcon, FileText, CalendarCheck, AlertTriangle, Clock, ArrowRight, Sparkles, TrendingUp, ShieldCheck, Plus } from "lucide-react";
+import { Building2, Home as HomeIcon, FileText, CalendarCheck, AlertTriangle, Clock, ArrowRight, Sparkles, TrendingUp, ShieldCheck, Plus, Download } from "lucide-react";
 import { useLocation } from "wouter";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { listOccurrences, type OccurrenceListItem } from "@/lib/occurrences";
+import { exportToPdf } from "@/lib/exportPdf";
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const { data: stats, isLoading: statsLoading } = trpc.dashboard.stats.useQuery();
+  const { data: condominiums } = trpc.condominium.list.useQuery();
   const { data: upcomingObl } = trpc.obligation.upcoming.useQuery({ days: 30 });
   const { data: activitiesData } = trpc.dashboard.activities.useQuery({ limit: 10 });
   const [occurrences, setOccurrences] = useState<OccurrenceListItem[]>([]);
@@ -26,6 +28,36 @@ export default function Home() {
   }, []);
 
   const priorityCases = occurrences.filter(item => !["resolved", "archived"].includes(item.status) && ["urgent", "high"].includes(item.severity)).slice(0, 4);
+  const portfolio = (condominiums || []).map((condo: any) => {
+    const condoOccurrences = occurrences.filter(item => item.condominiumId === condo.id && !["resolved", "archived"].includes(item.status));
+    const urgent = condoOccurrences.filter(item => item.severity === "urgent").length;
+    const obligations = (upcomingObl || []).filter((item: any) => Number(item.obligation?.condominiumId) === Number(condo.id));
+    const overdue = obligations.filter((item: any) => new Date(item.obligation?.dueDate).getTime() < Date.now()).length;
+    const attention = urgent > 0 || overdue > 0 ? "Crítico" : condoOccurrences.length > 0 || obligations.length > 0 ? "Atenção" : "Em dia";
+    return { id: condo.id, name: condo.name, occurrences: condoOccurrences.length, urgent, obligations: obligations.length, overdue, attention };
+  });
+
+  const exportPortfolioPdf = () => exportToPdf({
+    title: "Carteira 360",
+    subtitle: "Visão consolidada dos condomínios administrados",
+    data: portfolio.map(item => ({
+      condominio: item.name,
+      ocorrencias: item.occurrences,
+      urgentes: item.urgent,
+      obrigacoes: item.obligations,
+      vencidas: item.overdue,
+      status: item.attention,
+    })),
+    columns: [
+      { key: "condominio", label: "Condomínio", width: 58 },
+      { key: "ocorrencias", label: "Ocorr.", width: 22 },
+      { key: "urgentes", label: "Urg.", width: 18 },
+      { key: "obrigacoes", label: "Obrig.", width: 22 },
+      { key: "vencidas", label: "Venc.", width: 20 },
+      { key: "status", label: "Status", width: 30 },
+    ],
+    fileName: `carteira-360-${new Date().toISOString().split("T")[0]}.pdf`,
+  });
   const statCards = [
     { label: "Condomínios", value: stats?.totalCondominiums ?? 0, icon: Building2, color: "text-primary", bg: "bg-primary/10", path: "/condominios" },
     { label: "Unidades", value: stats?.totalUnits ?? 0, icon: HomeIcon, color: "text-chart-2", bg: "bg-chart-2/10", path: "/condominios" },
@@ -39,6 +71,21 @@ export default function Home() {
     {(occurrenceStats.open > 0 || occurrenceStats.urgent > 0) && <Card className="border-0 bg-slate-950 text-white shadow-sm"><CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center"><div className="grid h-12 w-12 place-items-center rounded-2xl bg-cyan-400/15"><ShieldCheck className="h-6 w-6 text-cyan-300" /></div><div className="flex-1"><p className="font-semibold">{occurrenceStats.open} ocorrência(s) em acompanhamento</p><p className="mt-1 text-sm text-slate-300">{occurrenceStats.urgent ? `${occurrenceStats.urgent} urgente(s) precisam de atenção.` : "Nenhuma ocorrência urgente agora."}</p></div><Button variant="secondary" onClick={() => setLocation("/ocorrencias")}>Abrir central <ArrowRight className="ml-2 h-4 w-4" /></Button></CardContent></Card>}
 
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">{statCards.map(stat => <Card key={stat.label} className="cursor-pointer border-0 shadow-sm transition-shadow hover:shadow-md" onClick={() => setLocation(stat.path)}><CardContent className="p-4"><div className="mb-3 flex items-center justify-between"><div className={`flex h-10 w-10 items-center justify-center rounded-xl ${stat.bg}`}><stat.icon className={`h-5 w-5 ${stat.color}`} /></div><ArrowRight className="h-4 w-4 text-muted-foreground" /></div>{statsLoading ? <Skeleton className="h-8 w-16" /> : <p className="text-2xl font-bold">{stat.value}</p>}<p className="mt-1 text-xs text-muted-foreground">{stat.label}</p></CardContent></Card>)}</div>
+
+    <Card className="border-0 shadow-sm">
+      <CardHeader className="pb-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base font-semibold"><Building2 className="h-4 w-4 text-cyan-700" />Carteira 360</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">Visão consolidada de todos os condomínios, sem misturar dados entre eles.</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={exportPortfolioPdf} disabled={!portfolio.length}><Download className="mr-2 h-4 w-4" />Exportar PDF</Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {!portfolio.length ? <div className="py-8 text-center text-muted-foreground"><Building2 className="mx-auto mb-2 h-10 w-10 opacity-30" /><p className="text-sm">Cadastre seu primeiro condomínio para montar a Carteira 360.</p></div> : <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{portfolio.map(item => <button key={item.id} type="button" onClick={() => setLocation(`/condominios/${item.id}`)} className="rounded-xl border bg-background p-4 text-left transition hover:shadow-sm"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate font-semibold">{item.name}</p><p className="mt-1 text-xs text-muted-foreground">{item.occurrences} ocorrência(s) aberta(s) · {item.obligations} obrigação(ões) próxima(s)</p></div><Badge variant={item.attention === "Crítico" ? "destructive" : "secondary"}>{item.attention}</Badge></div><div className="mt-4 grid grid-cols-4 gap-2 text-center"><div className="rounded-lg bg-muted/50 p-2"><p className="text-lg font-bold">{item.occurrences}</p><p className="text-[10px] text-muted-foreground">Ocorr.</p></div><div className="rounded-lg bg-muted/50 p-2"><p className="text-lg font-bold">{item.urgent}</p><p className="text-[10px] text-muted-foreground">Urgentes</p></div><div className="rounded-lg bg-muted/50 p-2"><p className="text-lg font-bold">{item.obligations}</p><p className="text-[10px] text-muted-foreground">Obrigações</p></div><div className="rounded-lg bg-muted/50 p-2"><p className="text-lg font-bold">{item.overdue}</p><p className="text-[10px] text-muted-foreground">Vencidas</p></div></div></button>)}</div>}
+      </CardContent>
+    </Card>
 
     <div className="grid gap-6 lg:grid-cols-3">
       <Card className="border-0 shadow-sm lg:col-span-1"><CardHeader className="pb-3"><div className="flex items-center justify-between"><CardTitle className="flex items-center gap-2 text-base font-semibold"><ShieldCheck className="h-4 w-4 text-cyan-700" />Casos prioritários</CardTitle><Button variant="ghost" size="sm" onClick={() => setLocation("/ocorrencias")}>Ver todos</Button></div></CardHeader><CardContent className="space-y-3">{!priorityCases.length ? <div className="py-8 text-center text-muted-foreground"><ShieldCheck className="mx-auto mb-2 h-10 w-10 opacity-30" /><p className="text-sm">Nenhum caso de alta prioridade.</p></div> : priorityCases.map(item => <button key={item.id} className="flex w-full items-center gap-3 rounded-lg bg-muted/50 p-3 text-left" onClick={() => setLocation("/ocorrencias")}><div className={`h-2.5 w-2.5 rounded-full ${item.severity === "urgent" ? "bg-rose-500" : "bg-orange-500"}`} /><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">#{item.id} · {item.title}</p><p className="truncate text-xs text-muted-foreground">{item.condominiumName}{item.unitNumber ? ` · Un. ${item.unitNumber}` : ""}</p></div><ArrowRight className="h-4 w-4 text-muted-foreground" /></button>)}</CardContent></Card>
