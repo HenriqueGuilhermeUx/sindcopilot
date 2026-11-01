@@ -4,7 +4,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { apiUrl } from "@/lib/runtime";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/input";\nimport { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -153,7 +153,7 @@ export default function Parceiros() {
   const [socialHandle, setSocialHandle] = useState("");
   const [socialUrl, setSocialUrl] = useState("");
   const [audienceSize, setAudienceSize] = useState("");
-  const [payoutPixKey, setPayoutPixKey] = useState("");
+  const [payoutPixKey, setPayoutPixKey] = useState("");\n  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [adminPartners, setAdminPartners] = useState<AdminPartner[] | null>(null);
 
   const load = async () => {
@@ -250,7 +250,7 @@ export default function Parceiros() {
                   <div><Label>@perfil</Label><Input value={socialHandle} onChange={e => setSocialHandle(e.target.value)} placeholder="@seuperfil" /></div>
                   <div><Label>Link principal</Label><Input type="url" value={socialUrl} onChange={e => setSocialUrl(e.target.value)} placeholder="https://..." /></div>
                   <div><Label>Audiência aproximada</Label><Input type="number" min="0" value={audienceSize} onChange={e => setAudienceSize(e.target.value)} /></div>
-                  <div className="md:col-span-2"><Button>Enviar para aprovação</Button></div>
+                  <label className="md:col-span-2 flex items-start gap-3 rounded-xl border bg-slate-50 p-4 text-sm"><Checkbox checked={acceptedTerms} onCheckedChange={value=>setAcceptedTerms(value===true)} /><span>Li e aceito os <Link href="/parceiros/termos" className="font-medium text-blue-600 underline">Termos do Programa de Parceiros</Link>, incluindo atribuição, comissão, prazo de elegibilidade e regras contra autoindicação/fraude.</span></label>\n                  <div className="md:col-span-2"><Button>Enviar para aprovação</Button></div>
                 </form>
               </CardContent>
             </Card>
