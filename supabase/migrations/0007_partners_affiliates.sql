@@ -40,6 +40,10 @@ create table if not exists public.partner_profiles (
   updated_at timestamptz not null default now()
 );
 
+alter table public.partner_profiles
+  add column if not exists terms_accepted_at timestamptz,
+  add column if not exists terms_version text;
+
 create index if not exists partner_profiles_status_idx on public.partner_profiles(status, created_at desc);
 
 create table if not exists public.partner_codes (
