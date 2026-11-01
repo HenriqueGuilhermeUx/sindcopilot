@@ -38,7 +38,17 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - uses: android-actions/setup-android@v3
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Instalar Android API e Build Tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Carregar configuração pública de produção
         shell: bash
@@ -62,7 +72,9 @@ jobs:
 
       - name: Dependências e validação de código
         run: |
-          npm ci
+          npm install
+          npm ls xlsx
+          npm audit --omit=dev --audit-level=high
           npm run typecheck
           npm test
           npm run build
@@ -153,5 +165,12 @@ jobs:
         with:
           name: SindCopilot-1.1.5-final-unsigned
           path: release/android/final-1.1.5/
+          retention-days: 7
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SindCopilot-1.1.5-updated-lockfile
+          path: package-lock.json
           retention-days: 7
           if-no-files-found: error
