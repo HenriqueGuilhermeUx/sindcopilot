@@ -22,7 +22,7 @@ const schema = z.object({
   CONTACT_EMAIL: z.string().email().default("henriquecampos66@gmail.com"),
   NEXOFFICE_BASE_URL: z.string().url().optional(),
   NEXOFFICE_INTERNAL_KEY: z.string().min(24).optional(),
-  NEXOFFICE_CONDO_SIGNALS_ENABLED: z.enum(["true","false"]).default("false").transform(v=>v==="true"),
+  NEXOFFICE_CONDO_SIGNALS_ENABLED: z.enum(["true","false"]).default("false").transform(v=>v==="true"),\n  REVIEW_ACCOUNT_1_EMAIL: z.string().email().optional(),\n  REVIEW_ACCOUNT_1_PASSWORD: z.string().min(12).optional(),\n  REVIEW_ACCOUNT_2_EMAIL: z.string().email().optional(),\n  REVIEW_ACCOUNT_2_PASSWORD: z.string().min(12).optional(),\n  REVIEW_ACCOUNT_3_EMAIL: z.string().email().optional(),\n  REVIEW_ACCOUNT_3_PASSWORD: z.string().min(12).optional(),
 });
 
 const parsed = schema.safeParse(process.env);
