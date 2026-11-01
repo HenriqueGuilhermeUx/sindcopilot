@@ -9,6 +9,7 @@ export async function createCheckoutSession(
   _email: string,
   _name: string | null,
   planKey: PaidPlanKey,
+  referralCode?: string | null,
 ) {
   const result = await createWooviSubscription(userId, planKey, referralCode);
   return {
