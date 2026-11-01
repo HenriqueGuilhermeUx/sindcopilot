@@ -117,6 +117,25 @@ export const appRouter = router({
       const selected=sources.filter((s:any)=>(result.source_numbers||[]).includes(s.source));const warning=result.warning||(!selected.length&&["multa","advertencia","notificacao"].includes(input.type)?"Não foi localizada base interna suficiente. Revise com atenção antes de usar.":null);const id=await db.createNotice(access(ctx),{...input,subject:result.titulo||input.subject,generatedContent:result.conteudo,legalBasis:result.base_legal,sourceRefs:selected,warning});await db.createActivity(access(ctx),{condominiumId:input.condominiumId,type:"notice_generated",title:`Minuta gerada: ${result.titulo||input.subject}`});return{id,content:result.conteudo,legalBasis:result.base_legal,title:result.titulo,warning,sources:selected};
     }),
     update: writeProcedure.input(z.object({id:z.number(),status:z.enum(["draft","sent","cancelled"]).optional(),generatedContent:z.string().optional()})).mutation(async({ctx,input})=>{const{id,...rest}=input;await db.updateNotice(access(ctx),id,{...rest,...(rest.status==="sent"?{sentAt:new Date()}: {})});return{success:true}}),
+    sendEmail: writeProcedure.input(z.object({id:z.number()})).mutation(async({ctx,input})=>{
+      const notice:any=await db.getNotice(access(ctx),input.id);
+      if(!notice.unitId) throw badRequest("Para enviar por e-mail, selecione uma unidade destinatária.");
+      const unit:any=await db.getUnit(access(ctx),Number(notice.unitId));
+      if(Number(unit.condominiumId)!==Number(notice.condominiumId)) throw badRequest("A unidade não pertence ao condomínio da comunicação.");
+      const recipient=unit.residentEmail||unit.ownerEmail;
+      if(!recipient) throw badRequest("A unidade não possui e-mail de morador ou proprietário cadastrado.");
+      const content=String(notice.generatedContent||notice.description||"").trim();
+      if(!content) throw badRequest("A comunicação não possui conteúdo para envio.");
+      const result:any=await sendEmail({
+        to:recipient,
+        subject:String(notice.subject||"Comunicação do condomínio"),
+        html:`<div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937">${escapeHtml(content).replace(/\\n/g,"<br>")}<hr style="margin:24px 0;border:0;border-top:1px solid #e5e7eb"><p style="font-size:12px;color:#6b7280">Enviado pelo SindCopilot em nome da administração do condomínio.</p></div>`,
+      });
+      if(result?.skipped) throw badRequest("Envio de e-mail ainda não está configurado neste ambiente.");
+      await db.updateNotice(access(ctx),input.id,{status:"sent",sentAt:new Date()});
+      await db.createActivity(access(ctx),{condominiumId:Number(notice.condominiumId),type:"notice_email_sent",title:`Comunicação enviada por e-mail: ${notice.subject}`});
+      return{success:true,channel:"email",recipient};
+    }),
     delete: writeProcedure.input(z.object({id:z.number()})).mutation(async({ctx,input})=>{await db.deleteNotice(access(ctx),input.id);return{success:true}}),
   }),
 
