@@ -1,4 +1,4 @@
-name: Android 1.1.2 - correção Google Play
+name: Android 1.1.5 - Financeiro Inteligente
 
 on:
   pull_request:
@@ -8,7 +8,7 @@ on:
       - "package.json"
       - "scripts/**"
       - "capacitor.config.ts"
-      - ".github/workflows/build-google-play-fix-1.1.2.yml"
+      - ".github/workflows/build-google-play-fix-1.1.5.yml"
 
 permissions:
   contents: read
@@ -18,8 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      ANDROID_VERSION_CODE: "3"
-      ANDROID_VERSION_NAME: "1.1.2"
+      ANDROID_VERSION_CODE: "6"
+      ANDROID_VERSION_NAME: "1.1.5"
       VITE_API_BASE_URL: https://sindcopilot.com
       VITE_NATIVE_APP: "true"
 
@@ -89,15 +89,15 @@ jobs:
           unzip -t "$APK" >/dev/null
           unzip -t "$AAB" >/dev/null
           unzip -p "$AAB" base/manifest/AndroidManifest.xml | strings | grep -F 'com.sindcopilot.app'
-          unzip -p "$AAB" base/manifest/AndroidManifest.xml | strings | grep -F '1.1.2'
+          unzip -p "$AAB" base/manifest/AndroidManifest.xml | strings | grep -F '1.1.5'
           mkdir -p release/android
-          cp "$APK" release/android/SindCopilot-1.1.2-release-unsigned.apk
-          cp "$AAB" release/android/SindCopilot-1.1.2-play-unsigned.aab
+          cp "$APK" release/android/SindCopilot-1.1.5-release-unsigned.apk
+          cp "$AAB" release/android/SindCopilot-1.1.5-play-unsigned.aab
           sha256sum release/android/* > release/android/SHA256SUMS-unsigned.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: SindCopilot-1.1.2-unsigned
+          name: SindCopilot-1.1.5-unsigned
           path: release/android/
           retention-days: 7
           if-no-files-found: error
