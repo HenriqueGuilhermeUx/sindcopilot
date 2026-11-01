@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import NexOfficeLauncher from "@/components/NexOfficeLauncher";
+import NexOfficeLauncher from "@/components/NexOfficeLauncher";\nimport ReferralCapture from "@/components/ReferralCapture";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { isNativeApp } from "@/lib/runtime";
@@ -29,7 +29,7 @@ const Privacidade = lazy(() => import("@/pages/Privacidade"));
 const ExclusaoConta = lazy(() => import("@/pages/ExclusaoConta"));
 const Login = lazy(() => import("@/pages/Login"));
 const Register = lazy(() => import("@/pages/Register"));
-const Invite = lazy(() => import("@/pages/Invite"));
+const Invite = lazy(() => import("@/pages/Invite"));\nconst Parceiros = lazy(() => import("@/pages/Parceiros"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const RootPage = isNativeApp ? NativeWelcome : Landing;
@@ -52,7 +52,7 @@ export default function App() {
       <ThemeProvider>
         <TooltipProvider>
           <Toaster richColors position="top-right" />
-          <NexOfficeLauncher />
+          <NexOfficeLauncher />\n          <ReferralCapture />
           <Suspense fallback={<LoadingScreen />}>
             <Switch>
               <Route path="/" component={RootPage} />
@@ -62,7 +62,7 @@ export default function App() {
               <Route path="/convite/:token" component={Invite} />
               <Route path="/termos" component={Termos} />
               <Route path="/privacidade" component={Privacidade} />
-              <Route path="/exclusao-de-conta" component={ExclusaoConta} />
+              <Route path="/exclusao-de-conta" component={ExclusaoConta} />\n              <Route path="/parceiros" component={Parceiros} />
               <Route path="/dashboard">{() => <Private><Home /></Private>}</Route>
               <Route path="/visitas">{() => <Private><ModoVisita /></Private>}</Route>
               <Route path="/ocorrencias">{() => <Private><Ocorrencias /></Private>}</Route>
