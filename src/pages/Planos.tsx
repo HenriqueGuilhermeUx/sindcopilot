@@ -1,10 +1,10 @@
-import { useAuth } from "@/_core/hooks/useAuth";
+import { useEffect, useState } from "react";\nimport { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Loader2, Crown, Sparkles, QrCode } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "sonner";\nimport { apiUrl } from "@/lib/runtime";
 
 const CONTACT_EMAIL = "henriquecampos66@gmail.com";
 const plans = [
@@ -18,12 +18,12 @@ export default function Planos() {
   const billing = trpc.billing.status.useQuery(undefined, { enabled: !!user });
   const checkout = trpc.billing.checkout.useMutation();
   const currentPlan = billing.data?.plan || "free";
-  const wooviStatus = billing.data?.stripeStatus;
+  const wooviStatus = billing.data?.stripeStatus;\n  const [partnerOffer, setPartnerOffer] = useState<any>(null);\n  const referralCode = typeof window !== "undefined" ? localStorage.getItem("sindcopilot_partner_ref") || undefined : undefined;\n\n  useEffect(() => {\n    if (!referralCode) return;\n    fetch(apiUrl(`/api/partners/offer/${encodeURIComponent(referralCode)}`))\n      .then(async response => response.ok ? response.json() : null)\n      .then(setPartnerOffer)\n      .catch(() => undefined);\n  }, [referralCode]);
 
   const subscribe = async (plan: "starter" | "pro") => {
     try {
-      const result = await checkout.mutateAsync({ plan });
-      toast.success("Assinatura Pix criada pela Woovi. Conclua a cobrança para ativar o plano.");
+      const result = await checkout.mutateAsync({ plan, referralCode });
+      toast.success(result.promoApplied ? "Preço fundador aplicado. Conclua a cobrança Pix para ativar." : "Assinatura Pix criada pela Woovi. Conclua a cobrança para ativar o plano.");
       if (result.url) window.location.href = result.url;
       await billing.refetch();
     } catch (error: any) {
@@ -39,11 +39,11 @@ export default function Planos() {
       <p className="text-slate-600">{currentPlan !== "free" ? <span className="flex items-center justify-center gap-2"><Crown className="h-4 w-4 text-amber-500"/>Você está no plano <Badge variant="secondary">{currentLabel}</Badge></span> : "Invista menos do que uma hora de consultoria por mês."}</p>
       {wooviStatus === "pending" && <div className="mt-4 inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800"><QrCode className="h-4 w-4"/>Assinatura criada. Aguardando o primeiro pagamento Pix pela Woovi.</div>}
     </div>
-    <div className="grid md:grid-cols-3 gap-8">{plans.map(plan => { const isCurrent = currentPlan === plan.key; return <Card key={plan.key} className={`relative flex flex-col ${plan.popular ? "border-blue-500 border-2 shadow-xl" : "border-slate-200"}`}>
+    {partnerOffer?.campaign?.remaining > 0 && <div className="mb-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center"><p className="font-semibold text-emerald-900">Oferta do parceiro {partnerOffer.code}: Starter por R$ 49,90/mês</p><p className="mt-1 text-sm text-emerald-800">Preço fundador para as primeiras {partnerOffer.campaign.maxRedemptions} reservas da campanha. Restam {partnerOffer.campaign.remaining}.</p></div>}\n    <div className="grid md:grid-cols-3 gap-8">{plans.map(plan => { const isCurrent = currentPlan === plan.key; const displayPrice = plan.key === "starter" && partnerOffer?.campaign?.remaining > 0 ? "49,90" : plan.price; return <Card key={plan.key} className={`relative flex flex-col ${plan.popular ? "border-blue-500 border-2 shadow-xl" : "border-slate-200"}`}>
       {plan.popular && <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600">Mais Popular</Badge>}
       {isCurrent && <Badge className="absolute -top-3 right-4 bg-emerald-600">Seu Plano</Badge>}
       <CardHeader className="text-center"><CardTitle className="text-2xl">{plan.name}</CardTitle><CardDescription>{plan.description}</CardDescription></CardHeader>
-      <CardContent className="text-center flex-1"><div className="mb-6">{plan.price ? <div className="flex items-baseline justify-center gap-1"><span className="text-sm text-slate-500">R$</span><span className="text-5xl font-bold text-slate-900">{plan.price}</span><span className="text-slate-500">/mês</span></div> : <div className="text-3xl font-bold text-slate-900 py-2">Sob Consulta</div>}</div><ul className="space-y-3 text-left">{plan.features.map(feature => <li key={feature} className="flex items-start gap-2 text-sm"><CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0"/><span className="text-slate-700">{feature}</span></li>)}</ul></CardContent>
+      <CardContent className="text-center flex-1"><div className="mb-6">{plan.price ? <div className="flex items-baseline justify-center gap-1"><span className="text-sm text-slate-500">R$</span><span className="text-5xl font-bold text-slate-900">{displayPrice}</span><span className="text-slate-500">/mês</span></div> : <div className="text-3xl font-bold text-slate-900 py-2">Sob Consulta</div>}</div><ul className="space-y-3 text-left">{plan.features.map(feature => <li key={feature} className="flex items-start gap-2 text-sm"><CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0"/><span className="text-slate-700">{feature}</span></li>)}</ul></CardContent>
       <CardFooter>{isCurrent ? <Button className="w-full" variant="secondary" disabled><Sparkles className="h-4 w-4 mr-2"/>Plano Atual</Button> : plan.price ? <Button className={`w-full ${plan.popular ? "bg-blue-600 hover:bg-blue-700" : ""}`} variant={plan.popular ? "default" : "outline"} onClick={() => subscribe(plan.key as "starter" | "pro")} disabled={checkout.isPending}>{checkout.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <QrCode className="h-4 w-4 mr-2"/>}Assinar com Pix</Button> : <Button className="w-full" variant="outline" asChild><a href={`mailto:${CONTACT_EMAIL}?subject=SindCopilot%20Scale`}>Falar com Vendas</a></Button>}</CardFooter>
     </Card>})}</div>
     <div className="mt-8 text-center text-sm text-slate-500"><p>Pagamentos e recorrência processados por Pix via Woovi.</p><p className="mt-1">Mantenha nome, CPF e telefone atualizados no Perfil antes de assinar.</p></div>
