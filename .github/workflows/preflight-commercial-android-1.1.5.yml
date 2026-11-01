@@ -54,21 +54,34 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl -fsSL --retry 4 --retry-delay 3 https://sindcopilot.com/ -o /tmp/index.html
           python - <<'PY'
-          import os, pathlib, re, urllib.parse, urllib.request
+          import os, re, urllib.parse, urllib.request
           root = "https://sindcopilot.com/"
-          html = pathlib.Path("/tmp/index.html").read_text(errors="ignore")
-          data = html
-          for src in re.findall(r"<script[^>]+src=['\"]([^'\"]+)['\"]", html):
-              with urllib.request.urlopen(urllib.parse.urljoin(root, src), timeout=30) as response:
-                  data += "\n" + response.read().decode("utf-8", errors="ignore")
-          urls = sorted(set(re.findall(r"https://[a-z0-9-]+\\.supabase\\.co", data)))
-          keys = [k for k in sorted(set(re.findall(r"eyJ[a-zA-Z0-9_-]+\\.[a-zA-Z0-9_-]+\\.[a-zA-Z0-9_-]+", data))) if len(k) > 100]
+          seen = set()
+          todo = [root]
+          combined = ""
+          while todo and len(seen) < 250:
+              url = todo.pop()
+              if url in seen:
+                  continue
+              seen.add(url)
+              try:
+                  with urllib.request.urlopen(url, timeout=30) as response:
+                      text = response.read().decode("utf-8", errors="ignore")
+              except Exception:
+                  continue
+              combined += "\n" + text
+              for rel in re.findall(r"""["']([^"']+\.js(?:\?[^"']*)?)["']""", text):
+                  nxt = urllib.parse.urljoin(url, rel)
+                  if urllib.parse.urlparse(nxt).netloc == "sindcopilot.com" and nxt not in seen:
+                      todo.append(nxt)
+          urls = sorted(set(re.findall(r"https://[a-z0-9-]+\.supabase\.co", combined)))
+          keys = [k for k in sorted(set(re.findall(r"eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+", combined))) if len(k) > 100]
           if not urls or not keys:
-              raise SystemExit("Configuração pública do Supabase não encontrada")
+              raise SystemExit(f"Configuração pública do Supabase não encontrada após rastrear {len(seen)} assets")
           with open(os.environ["GITHUB_ENV"], "a") as env:
               env.write(f"VITE_SUPABASE_URL={urls[0]}\nVITE_SUPABASE_ANON_KEY={keys[0]}\n")
+          print(f"Configuração pública encontrada em {len(seen)} assets.")
           PY
 
       - name: Dependências e validação de código
