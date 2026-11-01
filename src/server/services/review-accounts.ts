@@ -102,7 +102,7 @@ async function ensureAccount(account: ReviewAccount, ordinal: number) {
       user_metadata: {
         name: account.name,
         accepted_terms: true,
-        lgpd_version: "2.1",
+        lgpd_version: "2.3",
         review_account: true,
       },
     });
@@ -115,7 +115,7 @@ async function ensureAccount(account: ReviewAccount, ordinal: number) {
       user_metadata: {
         name: account.name,
         accepted_terms: true,
-        lgpd_version: "2.1",
+        lgpd_version: "2.3",
         review_account: true,
       },
     });
@@ -134,7 +134,7 @@ async function ensureAccount(account: ReviewAccount, ordinal: number) {
     profile_completed: true,
     terms_accepted_at: new Date().toISOString(),
     lgpd_consent_at: new Date().toISOString(),
-    lgpd_consent_version: "2.1",
+    lgpd_consent_version: "2.3",
   }).eq("id", userId);
   if (updateError) throw updateError;
 
