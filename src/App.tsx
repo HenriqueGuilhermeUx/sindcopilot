@@ -17,6 +17,7 @@ const Ocorrencias = lazy(() => import("@/pages/Ocorrencias"));
 const Financeiro = lazy(() => import("@/pages/Financeiro"));
 const Condominios = lazy(() => import("@/pages/Condominios"));
 const CondominioDetail = lazy(() => import("@/pages/CondominioDetail"));
+const Unidade360 = lazy(() => import("@/pages/Unidade360"));
 const Documentos = lazy(() => import("@/pages/Documentos"));
 const Compliance = lazy(() => import("@/pages/Compliance"));
 const Notificacoes = lazy(() => import("@/pages/Notificacoes"));
@@ -75,6 +76,7 @@ export default function App() {
               <Route path="/visitas">{() => <Private><ModoVisita /></Private>}</Route>
               <Route path="/ocorrencias">{() => <Private><Ocorrencias /></Private>}</Route>
               <Route path="/financeiro">{() => <Private><Financeiro /></Private>}</Route>
+              <Route path="/condominios/:id/unidades/:unitId">{() => <Private><Unidade360 /></Private>}</Route>
               <Route path="/condominios/:id">{() => <Private><CondominioDetail /></Private>}</Route>
               <Route path="/condominios">{() => <Private><Condominios /></Private>}</Route>
               <Route path="/documentos">{() => <Private><Documentos /></Private>}</Route>
