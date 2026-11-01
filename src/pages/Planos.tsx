@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";\nimport { useAuth } from "@/_core/hooks/useAuth";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Loader2, Crown, Sparkles, QrCode } from "lucide-react";
-import { toast } from "sonner";\nimport { apiUrl } from "@/lib/runtime";
+import { toast } from "sonner";
+import { apiUrl } from "@/lib/runtime";
 
 const CONTACT_EMAIL = "henriquecampos66@gmail.com";
 const plans = [
@@ -18,7 +20,17 @@ export default function Planos() {
   const billing = trpc.billing.status.useQuery(undefined, { enabled: !!user });
   const checkout = trpc.billing.checkout.useMutation();
   const currentPlan = billing.data?.plan || "free";
-  const wooviStatus = billing.data?.stripeStatus;\n  const [partnerOffer, setPartnerOffer] = useState<any>(null);\n  const referralCode = typeof window !== "undefined" ? localStorage.getItem("sindcopilot_partner_ref") || undefined : undefined;\n\n  useEffect(() => {\n    if (!referralCode) return;\n    fetch(apiUrl(`/api/partners/offer/${encodeURIComponent(referralCode)}`))\n      .then(async response => response.ok ? response.json() : null)\n      .then(setPartnerOffer)\n      .catch(() => undefined);\n  }, [referralCode]);
+  const wooviStatus = billing.data?.stripeStatus;
+  const [partnerOffer, setPartnerOffer] = useState<any>(null);
+  const referralCode = typeof window !== "undefined" ? localStorage.getItem("sindcopilot_partner_ref") || undefined : undefined;
+
+  useEffect(() => {
+    if (!referralCode) return;
+    fetch(apiUrl(`/api/partners/offer/${encodeURIComponent(referralCode)}`))
+      .then(async response => response.ok ? response.json() : null)
+      .then(setPartnerOffer)
+      .catch(() => undefined);
+  }, [referralCode]);
 
   const subscribe = async (plan: "starter" | "pro") => {
     try {
@@ -39,7 +51,8 @@ export default function Planos() {
       <p className="text-slate-600">{currentPlan !== "free" ? <span className="flex items-center justify-center gap-2"><Crown className="h-4 w-4 text-amber-500"/>Você está no plano <Badge variant="secondary">{currentLabel}</Badge></span> : "Invista menos do que uma hora de consultoria por mês."}</p>
       {wooviStatus === "pending" && <div className="mt-4 inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800"><QrCode className="h-4 w-4"/>Assinatura criada. Aguardando o primeiro pagamento Pix pela Woovi.</div>}
     </div>
-    {partnerOffer?.campaign?.remaining > 0 && <div className="mb-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center"><p className="font-semibold text-emerald-900">Oferta do parceiro {partnerOffer.code}: Starter por R$ 49,90/mês</p><p className="mt-1 text-sm text-emerald-800">Preço fundador para as primeiras {partnerOffer.campaign.maxRedemptions} reservas da campanha. Restam {partnerOffer.campaign.remaining}.</p></div>}\n    <div className="grid md:grid-cols-3 gap-8">{plans.map(plan => { const isCurrent = currentPlan === plan.key; const displayPrice = plan.key === "starter" && partnerOffer?.campaign?.remaining > 0 ? "49,90" : plan.price; return <Card key={plan.key} className={`relative flex flex-col ${plan.popular ? "border-blue-500 border-2 shadow-xl" : "border-slate-200"}`}>
+    {partnerOffer?.campaign?.remaining > 0 && <div className="mb-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center"><p className="font-semibold text-emerald-900">Oferta do parceiro {partnerOffer.code}: Starter por R$ 49,90/mês</p><p className="mt-1 text-sm text-emerald-800">Preço fundador para as primeiras {partnerOffer.campaign.maxRedemptions} reservas da campanha. Restam {partnerOffer.campaign.remaining}.</p></div>}
+    <div className="grid md:grid-cols-3 gap-8">{plans.map(plan => { const isCurrent = currentPlan === plan.key; const displayPrice = plan.key === "starter" && partnerOffer?.campaign?.remaining > 0 ? "49,90" : plan.price; return <Card key={plan.key} className={`relative flex flex-col ${plan.popular ? "border-blue-500 border-2 shadow-xl" : "border-slate-200"}`}>
       {plan.popular && <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600">Mais Popular</Badge>}
       {isCurrent && <Badge className="absolute -top-3 right-4 bg-emerald-600">Seu Plano</Badge>}
       <CardHeader className="text-center"><CardTitle className="text-2xl">{plan.name}</CardTitle><CardDescription>{plan.description}</CardDescription></CardHeader>
