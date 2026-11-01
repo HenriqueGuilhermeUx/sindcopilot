@@ -1,0 +1,190 @@
+name: Preflight comercial + Android 1.1.5 final
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "public/**"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/**"
+      - "capacitor.config.ts"
+      - ".github/workflows/preflight-commercial-android-1.1.5.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  preflight-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      ANDROID_VERSION_CODE: "6"
+      ANDROID_VERSION_NAME: "1.1.5"
+      VITE_API_BASE_URL: https://sindcopilot.com
+      VITE_NATIVE_APP: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Instalar Android API e Build Tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Carregar configuração pública de produção
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os, re, urllib.parse, urllib.request
+          root = "https://sindcopilot.com/"
+          seen = set()
+          todo = [root]
+          combined = ""
+          while todo and len(seen) < 250:
+              url = todo.pop()
+              if url in seen:
+                  continue
+              seen.add(url)
+              try:
+                  with urllib.request.urlopen(url, timeout=30) as response:
+                      text = response.read().decode("utf-8", errors="ignore")
+              except Exception:
+                  continue
+              combined += "\n" + text
+              for rel in re.findall(r"""["']([^"']+\.js(?:\?[^"']*)?)["']""", text):
+                  nxt = urllib.parse.urljoin(url, rel)
+                  if urllib.parse.urlparse(nxt).netloc == "sindcopilot.com" and nxt not in seen:
+                      todo.append(nxt)
+          urls = sorted(set(re.findall(r"https://[a-z0-9-]+\.supabase\.co", combined)))
+          keys = [k for k in sorted(set(re.findall(r"eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+", combined))) if len(k) > 100]
+          if not urls or not keys:
+              raise SystemExit(f"Configuração pública do Supabase não encontrada após rastrear {len(seen)} assets")
+          with open(os.environ["GITHUB_ENV"], "a") as env:
+              env.write(f"VITE_SUPABASE_URL={urls[0]}\nVITE_SUPABASE_ANON_KEY={keys[0]}\n")
+          print(f"Configuração pública encontrada em {len(seen)} assets.")
+          PY
+
+      - name: Dependências e validação de código
+        run: |
+          npm install
+          npm ls xlsx
+          npm audit --omit=dev --audit-level=high
+          npm run typecheck
+          npm test
+          npm run build
+
+      - name: Smoke test de produção
+        shell: bash
+        run: |
+          set -euo pipefail
+          for path in / /login /privacidade /termos /exclusao-de-conta /financeiro /ocorrencias /visitas; do
+            code=$(curl -L -sS -o /tmp/page -w '%{http_code}' --max-time 20 "https://sindcopilot.com$path")
+            test "$code" = "200" || { echo "$path => HTTP $code"; exit 1; }
+          done
+
+          health=$(curl -fsSL --max-time 20 https://sindcopilot.com/api/health)
+          echo "$health"
+          echo "$health" | grep -q '"status":"ok"'
+
+          code=$(curl -sS -o /tmp/assistant -w '%{http_code}' --max-time 20             -H 'Content-Type: application/json'             -d '{"message":"teste de autorização"}'             https://sindcopilot.com/api/assistant/chat)
+          test "$code" = "401" || { echo "assistant sem token => $code"; cat /tmp/assistant; exit 1; }
+
+          code=$(curl -sS -o /tmp/finance -w '%{http_code}' --max-time 20             'https://sindcopilot.com/api/finance/?condominiumId=1&month=2026-11')
+          test "$code" = "401" || { echo "finance sem token => $code"; cat /tmp/finance; exit 1; }
+
+      - name: Teste sintético controlado de capacidade pública
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import concurrent.futures, statistics, time, urllib.request
+          URL='https://sindcopilot.com/api/health'
+          TOTAL=500
+          WORKERS=50
+          def hit(_):
+              start=time.perf_counter()
+              try:
+                  with urllib.request.urlopen(URL, timeout=10) as r:
+                      body=r.read()
+                      ok=r.status==200 and b'"status":"ok"' in body
+                      return ok, time.perf_counter()-start, r.status
+              except Exception:
+                  return False, time.perf_counter()-start, 0
+          with concurrent.futures.ThreadPoolExecutor(max_workers=WORKERS) as ex:
+              results=list(ex.map(hit, range(TOTAL)))
+          ok=sum(1 for r in results if r[0])
+          times=sorted(r[1] for r in results)
+          p50=statistics.median(times)
+          p95=times[max(0, int(len(times)*0.95)-1)]
+          p99=times[max(0, int(len(times)*0.99)-1)]
+          print(f'health load: {ok}/{TOTAL} OK; p50={p50:.3f}s p95={p95:.3f}s p99={p99:.3f}s')
+          if ok < TOTAL:
+              raise SystemExit(f'{TOTAL-ok} requests falharam')
+          if p95 > 3.0:
+              raise SystemExit(f'p95 acima do limite de preflight: {p95:.3f}s')
+          PY
+
+      - name: Gerar Android atual
+        run: |
+          npm run mobile:assets
+          npm run build:native
+          npx cap add android
+          npx cap sync android
+          npx capacitor-assets generate --android
+          node scripts/patch-capacitor-android.mjs
+
+      - name: Compilar APK e AAB release sem chave
+        run: |
+          cd android
+          ./gradlew clean assembleRelease bundleRelease --stacktrace
+
+      - name: Verificar pacote, versão e artefatos
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=$(find android/app/build/outputs/apk/release -name '*.apk' | head -n 1)
+          AAB=$(find android/app/build/outputs/bundle/release -name '*.aab' | head -n 1)
+          test -f "$APK"
+          test -f "$AAB"
+          unzip -t "$APK" >/dev/null
+          unzip -t "$AAB" >/dev/null
+          unzip -p "$AAB" base/manifest/AndroidManifest.xml | strings | grep -F 'com.sindcopilot.app'
+          unzip -p "$AAB" base/manifest/AndroidManifest.xml | strings | grep -F '1.1.5'
+          mkdir -p release/android/final-1.1.5
+          cp "$APK" release/android/final-1.1.5/SindCopilot-1.1.5-release-unsigned.apk
+          cp "$AAB" release/android/final-1.1.5/SindCopilot-1.1.5-play-unsigned.aab
+          sha256sum release/android/final-1.1.5/* > release/android/final-1.1.5/SHA256SUMS-unsigned.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SindCopilot-1.1.5-final-unsigned
+          path: release/android/final-1.1.5/
+          retention-days: 7
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SindCopilot-1.1.5-updated-lockfile
+          path: package-lock.json
+          retention-days: 7
+          if-no-files-found: error
