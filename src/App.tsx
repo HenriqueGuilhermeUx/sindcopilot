@@ -67,7 +67,9 @@ export default function App() {
               <Route path="/termos" component={Termos} />
               <Route path="/privacidade" component={Privacidade} />
               <Route path="/exclusao-de-conta" component={ExclusaoConta} />
+              <Route path="/afiliados/termos" component={TermosParceiros} />
               <Route path="/parceiros/termos" component={TermosParceiros} />
+              <Route path="/afiliados" component={Parceiros} />
               <Route path="/parceiros" component={Parceiros} />
               <Route path="/dashboard">{() => <Private><Home /></Private>}</Route>
               <Route path="/visitas">{() => <Private><ModoVisita /></Private>}</Route>
