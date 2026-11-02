@@ -6,6 +6,7 @@ import {
   ClipboardCheck,
   FileText,
   Grid3X3,
+  History,
   Home,
   Landmark,
   MessageSquare,
@@ -27,11 +28,11 @@ const mainItems = [
 
 const quickActions = [
   { label: "Registrar ocorrência", detail: "Fato, unidade, evidências e histórico", path: "/ocorrencias", icon: ShieldCheck },
-  { label: "Importar extrato", detail: "Financeiro, conciliação e balancete", path: "/financeiro", icon: Landmark },
+  { label: "Financeiro 360", detail: "Extratos, aprovações, conciliação e balancete", path: "/financeiro", icon: Landmark },
   { label: "Iniciar visita", detail: "Checklist, fotos e relatório", path: "/visitas", icon: ClipboardCheck },
   { label: "Adicionar documento", detail: "Notas, contratos, convenção e regimento", path: "/documentos", icon: FileText },
-  { label: "Adicionar pendência", detail: "Prazo, obrigação e acompanhamento", path: "/compliance", icon: CalendarCheck },
-  { label: "Perguntar à IA", detail: "Convenção, regimento e rotina", path: "/assistente", icon: MessageSquare },
+  { label: "Adicionar pendência", detail: "Prazo, responsável, evidência e acompanhamento", path: "/compliance", icon: CalendarCheck },
+  { label: "Perguntar à IA", detail: "Operação, financeiro, compliance e regras internas", path: "/assistente", icon: MessageSquare },
 ] as const;
 
 const moreItems = [
@@ -39,9 +40,10 @@ const moreItems = [
   { label: "Financeiro", path: "/financeiro", icon: Landmark },
   { label: "Condomínios", path: "/condominios", icon: Building2 },
   { label: "Documentos", path: "/documentos", icon: FileText },
+  { label: "Histórico 360", path: "/historico", icon: History },
   { label: "Notificações", path: "/notificacoes", icon: Bell },
-  { label: "Fornecedores", path: "/fornecedores", icon: Users },
-  { label: "Assistente IA", path: "/assistente", icon: MessageSquare },
+  { label: "Fornecedores 360", path: "/fornecedores", icon: Users },
+  { label: "Assistente 360", path: "/assistente", icon: MessageSquare },
   { label: "Meu perfil", path: "/perfil", icon: User },
 ] as const;
 
