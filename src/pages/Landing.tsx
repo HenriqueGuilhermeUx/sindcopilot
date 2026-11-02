@@ -102,7 +102,7 @@ const mobileFeatures = [
 const plans = [
   {
     name: "Starter",
-    price: "99",
+    price: "79,90",
     description: "Para síndicos que gerenciam até 6 condomínios",
     features: [
       "Até 6 condomínios",
@@ -347,6 +347,18 @@ function MobileAppSection() {
 }
 
 export default function Landing() {
+  const [partnerOffer, setPartnerOffer] = useState<any>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("ref") || localStorage.getItem("sindcopilot_partner_ref") || "";
+    if (!code) return;
+    fetch(apiUrl(`/api/partners/offer/${encodeURIComponent(code)}`))
+      .then(async response => response.ok ? response.json() : null)
+      .then(setPartnerOffer)
+      .catch(() => undefined);
+  }, []);
+
   return (
     <div className="min-h-screen bg-white">
       <nav className="fixed left-0 right-0 top-0 z-50 border-b border-slate-200 bg-white/80 backdrop-blur-md">
