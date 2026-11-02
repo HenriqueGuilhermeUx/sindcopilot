@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
-import { Building2, CheckCircle2, ClipboardCheck, ShieldCheck, Sparkles } from "lucide-react";
+import { Building2, CheckCircle2, ClipboardCheck, History, Landmark, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -69,7 +69,7 @@ export default function NativeWelcome() {
               O condomínio na palma da sua mão.
             </h1>
             <p className="mt-4 max-w-sm text-[15px] leading-6 text-slate-400">
-              Vistorias, ocorrências e decisões organizadas em um app feito para a rotina do síndico.
+              Carteira 360, financeiro com aprovação, compliance, fornecedores, histórico e IA em um app feito para a rotina do síndico.
             </p>
           </div>
 
@@ -100,6 +100,24 @@ export default function NativeWelcome() {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium">Ocorrências & Governança</p>
                   <p className="mt-0.5 text-xs text-slate-500">Evidências, histórico e dossiê</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 rounded-2xl bg-white/[0.055] p-3.5">
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-500/15 text-emerald-300">
+                  <Landmark className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">Financeiro 360</p>
+                  <p className="mt-0.5 text-xs text-slate-500">Aprovação, conciliação e fechamento</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 rounded-2xl bg-white/[0.055] p-3.5">
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-cyan-500/15 text-cyan-300">
+                  <History className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">Histórico 360</p>
+                  <p className="mt-0.5 text-xs text-slate-500">Tudo que aconteceu no condomínio, em uma linha do tempo</p>
                 </div>
               </div>
             </div>
