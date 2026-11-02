@@ -22,7 +22,7 @@ const Documentos = lazy(() => import("@/pages/Documentos"));
 const Historico360 = lazy(() => import("@/pages/Historico360"));
 const Compliance = lazy(() => import("@/pages/Compliance"));
 const Notificacoes = lazy(() => import("@/pages/Notificacoes"));
-const Fornecedores = lazy(() => import("@/pages/Fornecedores"));
+const Fornecedores = lazy(() => import("@/pages/Fornecedores360"));
 const Assistente = lazy(() => import("@/pages/Assistente"));
 const Planos = lazy(() => import("@/pages/Planos"));
 const Perfil = lazy(() => import("@/pages/Perfil"));
