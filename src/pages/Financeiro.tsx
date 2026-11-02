@@ -30,6 +30,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  approveTransaction,
   classifyStatement,
   closePeriod,
   createClosing,
@@ -115,7 +116,7 @@ export default function Financeiro() {
   const condominium = useMemo(() => (condos as any[] | undefined)?.find(c => Number(c.id) === condominiumId), [condos, condominiumId]);
   const transactions = useMemo(() => {
     const rows = dashboard?.transactions || [];
-    return onlyReview ? rows.filter(row => row.needs_review) : rows;
+    return onlyReview ? rows.filter(row => row.needs_review || row.approval_status === "pending" || row.approval_status === "rejected") : rows;
   }, [dashboard, onlyReview]);
 
   const openingBalance = useMemo(() => {
@@ -125,7 +126,7 @@ export default function Financeiro() {
   const calculatedClosing = openingBalance + Number(dashboard?.summary.net || 0);
   const bankClosing = dashboard?.closing?.bank_closing_balance ?? dashboard?.statements.slice().reverse().find(statement => statement.bank_closing_balance != null)?.bank_closing_balance ?? null;
   const difference = bankClosing == null ? null : Number(bankClosing) - calculatedClosing;
-  const reconciled = difference != null && Math.abs(difference) < .01 && (dashboard?.summary.reviewCount || 0) === 0;
+  const reconciled = difference != null && Math.abs(difference) < .01 && (dashboard?.summary.reviewCount || 0) === 0 && (dashboard?.summary.approvalCount || 0) === 0 && (dashboard?.summary.rejectedCount || 0) === 0;
 
   async function handleImport(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -171,6 +172,25 @@ export default function Financeiro() {
       await refresh();
     } catch (error) { toast.error(error instanceof Error ? error.message : "Não foi possível salvar a classificação."); }
     finally { setBusy(false); }
+  }
+
+  async function setExpenseApproval(status: "approved" | "rejected") {
+    if (!selectedTx || selectedTx.direction !== "expense") return;
+    const note = status === "rejected"
+      ? window.prompt("Motivo da rejeição (opcional):") || null
+      : null;
+    setBusy(true);
+    try {
+      await approveTransaction(selectedTx.id, status, note);
+      toast.success(status === "approved" ? "Despesa aprovada e registrada na trilha de auditoria." : "Despesa rejeitada e devolvida para tratamento.");
+      setTransactionOpen(false);
+      setSelectedTx(null);
+      await refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível atualizar a aprovação.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function saveBalances(event: React.FormEvent<HTMLFormElement>) {
@@ -321,6 +341,7 @@ export default function Financeiro() {
                   <div className="mt-2 flex items-center justify-between"><span className="text-sm text-muted-foreground">Saldo calculado</span><strong>{money(calculatedClosing)}</strong></div>
                   <div className="mt-2 flex items-center justify-between border-t pt-2"><span className="text-sm font-medium">Diferença</span><strong className={difference != null && Math.abs(difference) < .01 ? "text-emerald-600" : "text-amber-600"}>{difference == null ? "Pendente" : money(difference)}</strong></div>
                 </div>
+                {(dashboard?.summary.approvalCount || dashboard?.summary.rejectedCount) ? <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"><strong>Governança financeira:</strong> {dashboard?.summary.approvalCount || 0} despesa(s) aguardando aprovação e {dashboard?.summary.rejectedCount || 0} rejeitada(s). O fechamento só é liberado quando essas pendências forem resolvidas.</div> : null}
                 <Textarea placeholder="Observações do fechamento (opcional)" value={closingNotes} onChange={event => setClosingNotes(event.target.value)} />
                 <Button className="w-full" variant="outline" onClick={() => void updateClosing()} disabled={busy || !dashboard?.transactions.length}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}Atualizar fechamento</Button>
                 {dashboard?.closing?.status === "reconciled" && <Button className="w-full" onClick={() => void finalizeClosing()} disabled={busy}><LockKeyhole className="mr-2 h-4 w-4" />Fechar mês</Button>}
@@ -343,7 +364,7 @@ export default function Financeiro() {
                       <span className="text-xs text-muted-foreground">{shortDate(tx.posted_at)}</span>
                       <span className="min-w-0"><span className="block truncate font-medium">{tx.description}</span><span className="mt-0.5 block truncate text-xs text-muted-foreground">{tx.category}{tx.subcategory ? ` › ${tx.subcategory}` : ""} • {confidenceLabel(tx)}</span></span>
                       <span className={`text-sm font-bold sm:text-right ${tx.direction === "income" ? "text-emerald-600" : "text-rose-600"}`}>{tx.direction === "income" ? "+" : "-"} {money(Math.abs(Number(tx.amount)))}</span>
-                      <span className="flex items-center gap-2 sm:justify-end">{tx.needs_review ? <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">Revisar</Badge> : <Badge variant="outline" className="text-emerald-700">OK</Badge>}<Pencil className="h-4 w-4 text-muted-foreground" /></span>
+                      <span className="flex flex-wrap items-center gap-2 sm:justify-end">{tx.needs_review ? <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">Revisar</Badge> : <Badge variant="outline" className="text-emerald-700">Classificado</Badge>}{tx.direction === "expense" && tx.approval_status === "pending" && <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">Aprovar</Badge>}{tx.direction === "expense" && tx.approval_status === "approved" && <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Aprovada</Badge>}{tx.direction === "expense" && tx.approval_status === "rejected" && <Badge variant="destructive">Rejeitada</Badge>}<Pencil className="h-4 w-4 text-muted-foreground" /></span>
                     </button>
                   ))}
                 </div>
@@ -375,6 +396,7 @@ export default function Financeiro() {
             <div><Label>Categoria</Label><Select name="category" defaultValue={selectedTx.category}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(selectedTx.direction === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map(category => <SelectItem key={category} value={category}>{category}</SelectItem>)}</SelectContent></Select></div>
             <div><Label htmlFor="subcategory">Subcategoria (opcional)</Label><Input id="subcategory" name="subcategory" defaultValue={selectedTx.subcategory || ""} placeholder="Ex.: Elevadores, Portaria, Folha..." /></div>
             <div><Label htmlFor="notes">Observação</Label><Textarea id="notes" name="notes" defaultValue={selectedTx.notes || ""} /></div>
+            {selectedTx.direction === "expense" && <div className="rounded-xl border p-3"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-medium">Aprovação da despesa</p><p className="text-xs text-muted-foreground">Status atual: {selectedTx.approval_status === "approved" ? "aprovada" : selectedTx.approval_status === "rejected" ? "rejeitada" : "aguardando aprovação"}</p></div><div className="flex gap-2"><Button type="button" variant="outline" disabled={busy} onClick={() => void setExpenseApproval("rejected")}>Rejeitar</Button><Button type="button" disabled={busy || selectedTx.approval_status === "approved"} onClick={() => void setExpenseApproval("approved")}>Aprovar</Button></div></div>{selectedTx.approval_note && <p className="mt-2 text-xs text-muted-foreground">Motivo registrado: {selectedTx.approval_note}</p>}</div>}
             <label className="flex items-start gap-2 rounded-xl border p-3 text-sm"><input className="mt-1" type="checkbox" name="learn" defaultChecked /><span><strong>Aprender esta classificação</strong><span className="mt-0.5 block text-xs text-muted-foreground">Nos próximos extratos deste condomínio, descrições semelhantes podem ser categorizadas automaticamente.</span></span></label>
             <Button className="w-full" type="submit" disabled={busy}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}Confirmar classificação</Button>
           </form>
