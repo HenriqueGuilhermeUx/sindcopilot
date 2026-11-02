@@ -16,6 +16,8 @@ jobs:
     env:
       VITE_API_BASE_URL: https://sindcopilot.com
       VITE_NATIVE_APP: "true"
+      ANDROID_VERSION_CODE: "7"
+      ANDROID_VERSION_NAME: "1.1.6"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -48,7 +50,7 @@ jobs:
           rm -rf android
           npx cap add android
           npx cap sync android
-          node scripts/patch-capacitor-android.mjs --version-code 7 --version-name 1.1.6 --unsigned
+          node scripts/patch-capacitor-android.mjs
       - name: Compilar AAB sem assinatura
         working-directory: android
         run: ./gradlew bundleRelease --no-daemon
