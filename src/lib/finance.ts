@@ -35,6 +35,10 @@ export type FinanceTransaction = {
   source_line: number | null;
   external_id: string | null;
   notes: string | null;
+  approval_status: "not_required" | "pending" | "approved" | "rejected";
+  approval_note: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
 };
 
 export type FinanceClosing = {
@@ -63,6 +67,8 @@ export type FinanceDashboard = {
     expenses: number;
     net: number;
     reviewCount: number;
+    approvalCount: number;
+    rejectedCount: number;
     transactionCount: number;
     categories: Array<{ category: string; total: number }>;
   };
@@ -117,8 +123,12 @@ export function updateTransaction(id: number, input: { category: string; subcate
   return financeApi<{ success: true; reconciliation: any }>(`/transactions/${id}`, { method: "PATCH", body: JSON.stringify(input) });
 }
 
+export function approveTransaction(id: number, status: "approved" | "rejected", note?: string | null) {
+  return financeApi<{ success: true }>(`/transactions/${id}/approval`, { method: "PATCH", body: JSON.stringify({ status, note: note || null }) });
+}
+
 export function createClosing(condominiumId: number, month: string, notes?: string | null) {
-  return financeApi<{ closing: FinanceClosing; reviewCount: number }>("/closing", { method: "POST", body: JSON.stringify({ condominiumId, month, notes: notes || null }) });
+  return financeApi<{ closing: FinanceClosing; reviewCount: number; approvalCount: number }>("/closing", { method: "POST", body: JSON.stringify({ condominiumId, month, notes: notes || null }) });
 }
 
 export function closePeriod(id: number) {
