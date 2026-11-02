@@ -363,12 +363,12 @@ export async function listPartnerApplications() {
     ? await supabaseAdmin.from("users").select("id,name,email").in("id", userIds)
     : { data: [], error: null } as any;
   if (usersError) throw new Error(usersError.message);
-  const userMap = new Map((users || []).map((row: any) => [row.id, row]));
+  const userMap = new Map<string, { name: string | null; email: string | null }>((users || []).map((row: any) => [String(row.id), { name: row.name ?? null, email: row.email ?? null }]));
   return (profiles || []).map((row: any) => ({
     id: Number(row.id),
     userId: row.user_id,
-    name: userMap.get(row.user_id)?.name || row.display_name,
-    email: userMap.get(row.user_id)?.email || null,
+    name: userMap.get(String(row.user_id))?.name || row.display_name,
+    email: userMap.get(String(row.user_id))?.email || null,
     displayName: row.display_name,
     socialHandle: row.social_handle,
     socialUrl: row.social_url,
