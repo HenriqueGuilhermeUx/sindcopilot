@@ -594,7 +594,7 @@ financeRouter.post("/closing", async (req: AuthRequest, res) => {
     await db.assertCondominium(access(user), input.condominiumId, true);
     const { start, next } = monthBounds(input.month);
     const [{ data: txs, error: txError }, { data: statements, error: stError }] = await Promise.all([
-      supabaseAdmin.from("financial_transactions").select("statement_id,amount,direction,needs_review").eq("user_id", user.accountOwnerId).eq("condominium_id", input.condominiumId).gte("posted_at", start).lt("posted_at", next),
+      supabaseAdmin.from("financial_transactions").select("statement_id,amount,direction,needs_review,approval_status").eq("user_id", user.accountOwnerId).eq("condominium_id", input.condominiumId).gte("posted_at", start).lt("posted_at", next),
       supabaseAdmin.from("financial_statements").select("id,period_start,opening_balance,bank_closing_balance").eq("user_id", user.accountOwnerId).eq("condominium_id", input.condominiumId).order("period_start", { ascending: true }),
     ]);
     if (txError) throw new Error(txError.message); if (stError) throw new Error(stError.message);
@@ -608,12 +608,13 @@ financeRouter.post("/closing", async (req: AuthRequest, res) => {
     const bankClosing = closingSource ? Number(closingSource.bank_closing_balance) : null;
     const difference = bankClosing == null ? null : roundMoney(bankClosing - calculated);
     const reviewCount = (txs || []).filter((t: any) => t.needs_review).length;
-    const status = difference != null && Math.abs(difference) < .01 && reviewCount === 0 ? "reconciled" : "draft";
+    const approvalCount = (txs || []).filter((t: any) => t.direction === "expense" && ["pending","rejected"].includes(t.approval_status)).length;
+    const status = difference != null && Math.abs(difference) < .01 && reviewCount === 0 && approvalCount === 0 ? "reconciled" : "draft";
     const statementIds = [...new Set((txs || []).map((t: any) => Number(t.statement_id)))];
     const payload = { user_id: user.accountOwnerId, condominium_id: input.condominiumId, period_month: start, statement_ids: statementIds, opening_balance: opening, income_total: income, expense_total: expenses, calculated_closing_balance: calculated, bank_closing_balance: bankClosing, reconciliation_difference: difference, status, notes: input.notes || null };
     const { data, error } = await supabaseAdmin.from("financial_closings").upsert(payload, { onConflict: "user_id,condominium_id,period_month" }).select("*").single();
     if (error) throw new Error(error.message);
-    return res.json({ closing: data, reviewCount });
+    return res.json({ closing: data, reviewCount, approvalCount });
   } catch (error) { return sendError(res, error); }
 });
 
