@@ -1,0 +1,10 @@
+{
+  "app": "SindCopilot",
+  "packageName": "com.sindcopilot.app",
+  "versionName": "1.1.6",
+  "versionCode": 7,
+  "commit": "6ed6675fb1425ea36cfe599b919eea155b9f6ebc",
+  "workflowRunId": 41502488039,
+  "status": "failure",
+  "signedArtifactsGenerated": false
+}
