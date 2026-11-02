@@ -205,6 +205,7 @@ export async function applyForPartner(userId: string, input: {
   socialHandle?: string | null;
   socialUrl?: string | null;
   audienceSize?: number | null;
+  acceptedTerms: true;
 }) {
   const { data: existing, error } = await supabaseAdmin
     .from("partner_profiles")
@@ -219,6 +220,8 @@ export async function applyForPartner(userId: string, input: {
       social_handle: input.socialHandle || null,
       social_url: input.socialUrl || null,
       audience_size: input.audienceSize ?? null,
+      terms_accepted_at: new Date().toISOString(),
+      terms_version: "1.0",
     }).eq("id", existing.id).select("*").single();
     if (updateError) throw new Error(updateError.message);
     return data;
@@ -230,6 +233,8 @@ export async function applyForPartner(userId: string, input: {
     social_handle: input.socialHandle || null,
     social_url: input.socialUrl || null,
     audience_size: input.audienceSize ?? null,
+    terms_accepted_at: new Date().toISOString(),
+    terms_version: "1.0",
     status: "pending",
     commission_percent: 30,
     commission_months: 12,
@@ -416,7 +421,55 @@ export async function pausePartner(partnerId: number) {
   return { success: true };
 }
 
+export async function listAdminCommissions() {
+  const { data: commissions, error } = await supabaseAdmin
+    .from("partner_commissions")
+    .select("id,partner_id,payment_value_cents,commission_percent,commission_value_cents,status,eligible_at,paid_at,created_at")
+    .in("status", ["pending", "approved"])
+    .order("eligible_at", { ascending: true })
+    .limit(300);
+  if (error) throw new Error(error.message);
+
+  const partnerIds = [...new Set((commissions || []).map((row: any) => Number(row.partner_id)))];
+  const { data: partners, error: partnersError } = partnerIds.length
+    ? await supabaseAdmin
+        .from("partner_profiles")
+        .select("id,display_name,payout_pix_key")
+        .in("id", partnerIds)
+    : { data: [], error: null } as any;
+  if (partnersError) throw new Error(partnersError.message);
+
+  const partnerMap = new Map((partners || []).map((row: any) => [Number(row.id), row]));
+  return (commissions || []).map((row: any) => {
+    const partner: any = partnerMap.get(Number(row.partner_id));
+    return {
+      id: Number(row.id),
+      partnerId: Number(row.partner_id),
+      partnerName: partner?.display_name || "Parceiro",
+      payoutPixKey: partner?.payout_pix_key || null,
+      paymentValueCents: Number(row.payment_value_cents),
+      commissionPercent: Number(row.commission_percent),
+      commissionValueCents: Number(row.commission_value_cents),
+      status: row.status,
+      eligibleAt: row.eligible_at,
+      eligibleNow: new Date(row.eligible_at).getTime() <= Date.now(),
+      paidAt: row.paid_at,
+      createdAt: row.created_at,
+    };
+  });
+}
+
 export async function markCommissionPaid(commissionId: number) {
+  const { data: commission, error: lookupError } = await supabaseAdmin
+    .from("partner_commissions")
+    .select("id,status,eligible_at")
+    .eq("id", commissionId)
+    .maybeSingle();
+  if (lookupError) throw new Error(lookupError.message);
+  if (!commission) throw new Error("Comissão não encontrada.");
+  if (!["pending", "approved"].includes(commission.status)) throw new Error("Esta comissão não pode ser marcada como paga.");
+  if (new Date(commission.eligible_at).getTime() > Date.now()) throw new Error("A comissão ainda está no período de elegibilidade.");
+
   const { error } = await supabaseAdmin.from("partner_commissions").update({
     status: "paid",
     paid_at: new Date().toISOString(),

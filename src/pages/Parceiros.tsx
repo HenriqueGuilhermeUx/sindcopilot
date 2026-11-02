@@ -17,13 +17,16 @@ import {
   DollarSign,
   ExternalLink,
   Gift,
+  Instagram,
   Loader2,
   Megaphone,
+  MessageCircle,
   MousePointerClick,
   ShieldCheck,
   Sparkles,
   Users,
   WalletCards,
+  Youtube,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -74,6 +77,23 @@ type AdminPartner = {
   socialUrl: string | null;
   audienceSize: number | null;
   status: string;
+  commissionPercent: number;
+  commissionMonths: number;
+  payoutConfigured: boolean;
+  createdAt: string;
+};
+
+type AdminCommission = {
+  id: number;
+  partnerId: number;
+  partnerName: string;
+  payoutPixKey: string | null;
+  paymentValueCents: number;
+  commissionPercent: number;
+  commissionValueCents: number;
+  status: string;
+  eligibleAt: string;
+  eligibleNow: boolean;
   createdAt: string;
 };
 
@@ -157,6 +177,7 @@ export default function Parceiros() {
   const [payoutPixKey, setPayoutPixKey] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [adminPartners, setAdminPartners] = useState<AdminPartner[] | null>(null);
+  const [adminCommissions, setAdminCommissions] = useState<AdminCommission[] | null>(null);
 
   const load = async () => {
     if (!user) return;
@@ -171,6 +192,11 @@ export default function Parceiros() {
       if (adminResponse.ok) {
         const adminPayload = await adminResponse.json();
         setAdminPartners(adminPayload.partners || []);
+        const commissionsResponse = await authFetch("/api/partners/admin/commissions");
+        if (commissionsResponse.ok) {
+          const commissionsPayload = await commissionsResponse.json();
+          setAdminCommissions(commissionsPayload.commissions || []);
+        }
       }
     } catch (error: any) {
       toast.error(error.message || "Não foi possível carregar parceiros.");
@@ -195,6 +221,7 @@ export default function Parceiros() {
           socialHandle: socialHandle || null,
           socialUrl: socialUrl || null,
           audienceSize: audienceSize ? Number(audienceSize) : null,
+          acceptedTerms,
         }),
       });
       const payload = await response.json();
@@ -227,6 +254,29 @@ export default function Parceiros() {
     await load();
   };
 
+  const pause = async (id: number) => {
+    if (!window.confirm("Pausar este parceiro e desativar seus códigos de indicação?")) return;
+    const response = await authFetch(`/api/partners/admin/${id}/pause`, { method: "POST", body: "{}" });
+    const payload = await response.json();
+    if (!response.ok) return toast.error(payload.error || "Não foi possível pausar.");
+    toast.success("Parceiro pausado.");
+    await load();
+  };
+
+  const markPaid = async (id: number) => {
+    if (!window.confirm("Confirmar que esta comissão foi paga ao parceiro?")) return;
+    const response = await authFetch(`/api/partners/admin/commissions/${id}/paid`, { method: "POST", body: "{}" });
+    const payload = await response.json();
+    if (!response.ok) return toast.error(payload.error || "Não foi possível registrar o pagamento.");
+    toast.success("Comissão registrada como paga.");
+    await load();
+  };
+
+  const copyText = async (text: string, label = "Texto") => {
+    await navigator.clipboard.writeText(text);
+    toast.success(`${label} copiado.`);
+  };
+
   if (loading) return <div className="grid min-h-screen place-items-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   if (!user) return <PublicProgram />;
 
@@ -253,7 +303,7 @@ export default function Parceiros() {
                   <div><Label>Link principal</Label><Input type="url" value={socialUrl} onChange={e => setSocialUrl(e.target.value)} placeholder="https://..." /></div>
                   <div><Label>Audiência aproximada</Label><Input type="number" min="0" value={audienceSize} onChange={e => setAudienceSize(e.target.value)} /></div>
                   <label className="md:col-span-2 flex items-start gap-3 rounded-xl border bg-slate-50 p-4 text-sm"><Checkbox checked={acceptedTerms} onCheckedChange={value=>setAcceptedTerms(value===true)} /><span>Li e aceito os <Link href="/parceiros/termos" className="font-medium text-blue-600 underline">Termos do Programa de Parceiros</Link>, incluindo atribuição, comissão, prazo de elegibilidade e regras contra autoindicação/fraude.</span></label>
-                  <div className="md:col-span-2"><Button>Enviar para aprovação</Button></div>
+                  <div className="md:col-span-2"><Button disabled={!acceptedTerms}>Enviar para aprovação</Button></div>
                 </form>
               </CardContent>
             </Card>
@@ -287,6 +337,17 @@ export default function Parceiros() {
               </Card>
 
               <Card>
+                <CardHeader><CardTitle>Kit de divulgação</CardTitle><CardDescription>Textos prontos com seu link rastreável. Edite livremente antes de publicar.</CardDescription></CardHeader>
+                <CardContent className="grid gap-3">
+                  {primaryCode ? <>
+                    <Button variant="outline" className="justify-start" onClick={()=>void copyText(`Síndico ou administradora: conheça o SindCopilot, uma central para ocorrências, documentos, financeiro, compliance e rotina condominial. Oferta Fundadores 100: Starter por R$ 49,90/mês para os primeiros clientes pelo meu link: ${primaryCode.shareUrl}`, "Texto para WhatsApp")}><MessageCircle className="mr-2 h-4 w-4" />Copiar para WhatsApp</Button>
+                    <Button variant="outline" className="justify-start" onClick={()=>void copyText(`Gestão condominial com menos planilhas soltas e mais visão 360. Estou indicando o SindCopilot e há uma condição Fundadores 100 de R$ 49,90/mês no Starter. Acesse: ${primaryCode.shareUrl}`, "Legenda para Instagram")}><Instagram className="mr-2 h-4 w-4" />Copiar legenda Instagram</Button>
+                    <Button variant="outline" className="justify-start" onClick={()=>void copyText(`Conheça o SindCopilot: plataforma para síndicos e gestores acompanharem ocorrências, unidades, documentos, compliance e financeiro em um só lugar. Meu link: ${primaryCode.shareUrl}`, "Descrição para vídeo")}><Youtube className="mr-2 h-4 w-4" />Copiar descrição de vídeo</Button>
+                  </> : <p className="text-sm text-muted-foreground">O kit será liberado junto com seu código.</p>}
+                </CardContent>
+              </Card>
+
+              <Card>
                 <CardHeader><CardTitle>Oferta para sua audiência</CardTitle><CardDescription>Campanha compartilhada entre parceiros ativos.</CardDescription></CardHeader>
                 <CardContent>
                   {dashboard.campaign ? <>
@@ -313,12 +374,21 @@ export default function Parceiros() {
         )}
 
         {adminPartners && (
-          <Card className="border-blue-200">
-            <CardHeader><CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-blue-600" />Administração de parceiros</CardTitle><CardDescription>{pendingAdmin.length} solicitação(ões) aguardando aprovação.</CardDescription></CardHeader>
-            <CardContent className="space-y-3">
-              {!pendingAdmin.length ? <p className="text-sm text-muted-foreground">Nenhuma solicitação pendente.</p> : pendingAdmin.map(item => <div key={item.id} className="flex flex-col gap-3 rounded-xl border p-4 md:flex-row md:items-center"><div className="flex-1"><p className="font-semibold">{item.displayName}</p><p className="text-sm text-muted-foreground">{item.email || "sem email"} {item.socialHandle ? `· ${item.socialHandle}` : ""}</p>{item.socialUrl && <a className="text-sm text-blue-600 underline" href={item.socialUrl} target="_blank" rel="noreferrer">{item.socialUrl}</a>}</div><Button onClick={()=>approve(item.id)}>Aprovar 30%</Button></div>)}
-            </CardContent>
-          </Card>
+          <>
+            <Card className="border-blue-200">
+              <CardHeader><CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-blue-600" />Administração de parceiros</CardTitle><CardDescription>{pendingAdmin.length} solicitação(ões) aguardando aprovação · {adminPartners.length} parceiro(s) cadastrado(s).</CardDescription></CardHeader>
+              <CardContent className="space-y-3">
+                {!adminPartners.length ? <p className="text-sm text-muted-foreground">Nenhum parceiro cadastrado.</p> : adminPartners.map(item => <div key={item.id} className="flex flex-col gap-3 rounded-xl border p-4 md:flex-row md:items-center"><div className="flex-1"><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{item.displayName}</p><Badge variant={item.status === "active" ? "default" : "secondary"}>{item.status}</Badge>{item.payoutConfigured && <Badge variant="outline">Pix cadastrado</Badge>}</div><p className="mt-1 text-sm text-muted-foreground">{item.email || "sem email"} {item.socialHandle ? `· ${item.socialHandle}` : ""} · {item.commissionPercent}% / {item.commissionMonths} meses</p>{item.socialUrl && <a className="text-sm text-blue-600 underline" href={item.socialUrl} target="_blank" rel="noreferrer">{item.socialUrl}</a>}</div><div className="flex gap-2">{item.status === "pending" && <Button onClick={()=>approve(item.id)}>Aprovar 30%</Button>}{item.status === "active" && <Button variant="outline" onClick={()=>pause(item.id)}>Pausar</Button>}</div></div>)}
+              </CardContent>
+            </Card>
+
+            {adminCommissions && <Card className="border-emerald-200">
+              <CardHeader><CardTitle>Comissões a pagar</CardTitle><CardDescription>Pagamento continua manual via Pix; o SindCopilot registra a baixa somente após sua confirmação.</CardDescription></CardHeader>
+              <CardContent className="space-y-3">
+                {!adminCommissions.length ? <p className="text-sm text-muted-foreground">Nenhuma comissão pendente.</p> : adminCommissions.map(item => <div key={item.id} className="flex flex-col gap-3 rounded-xl border p-4 md:flex-row md:items-center"><div className="flex-1"><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{item.partnerName}</p><Badge variant={item.eligibleNow ? "default" : "secondary"}>{item.eligibleNow ? "Elegível" : "Aguardando prazo"}</Badge></div><p className="mt-1 text-sm text-muted-foreground">Comissão {item.commissionPercent}% · {money(item.commissionValueCents)} sobre venda de {money(item.paymentValueCents)}</p><p className="mt-1 text-xs text-muted-foreground">Elegível em {new Date(item.eligibleAt).toLocaleDateString("pt-BR")} · Pix: {item.payoutPixKey || "não cadastrado"}</p></div><Button disabled={!item.eligibleNow || !item.payoutPixKey} onClick={()=>markPaid(item.id)}>Confirmar pagamento</Button></div>)}
+              </CardContent>
+            </Card>}
+          </>
         )}
       </main>
     </div>

@@ -7,6 +7,7 @@ import {
   claimPartnerReferral,
   getPartnerDashboard,
   getPublicPartnerOffer,
+  listAdminCommissions,
   listPartnerApplications,
   markCommissionPaid,
   pausePartner,
@@ -31,6 +32,7 @@ const applySchema = z.object({
   socialHandle: z.string().trim().max(160).optional().nullable(),
   socialUrl: z.string().trim().url().max(500).optional().nullable().or(z.literal("")),
   audienceSize: z.number().int().min(0).max(100_000_000).optional().nullable(),
+  acceptedTerms: z.literal(true),
 });
 
 const payoutSchema = z.object({
@@ -99,6 +101,7 @@ partnersRouter.post("/apply", async (req: PartnerRequest, res) => {
     const data = await applyForPartner(req.partnerUser!.id, {
       ...parsed.data,
       socialUrl: parsed.data.socialUrl || null,
+      acceptedTerms: true,
     });
     return res.status(201).json({ profile: data });
   } catch (error) {
@@ -129,6 +132,14 @@ partnersRouter.patch("/payout", async (req: PartnerRequest, res) => {
 partnersRouter.get("/admin/list", requireAdmin, async (_req: PartnerRequest, res) => {
   try {
     return res.json({ partners: await listPartnerApplications() });
+  } catch (error) {
+    return sendError(res, error);
+  }
+});
+
+partnersRouter.get("/admin/commissions", requireAdmin, async (_req: PartnerRequest, res) => {
+  try {
+    return res.json({ commissions: await listAdminCommissions() });
   } catch (error) {
     return sendError(res, error);
   }
