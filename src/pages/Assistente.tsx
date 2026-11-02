@@ -25,17 +25,21 @@ type AssistantResponse = {
 };
 
 const suggestions = [
-  "Como aplicar uma multa por infração?",
-  "Quais são as regras sobre barulho?",
-  "Como organizar uma assembleia?",
-  "O que acompanhar para renovar o AVCB?",
+  "O que precisa da minha atenção agora?",
+  "Quais obrigações estão atrasadas ou próximas?",
+  "Há ocorrências urgentes neste condomínio?",
+  "Quais despesas ainda precisam de aprovação?",
 ];
 
 export default function Assistente() {
   const { session } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
-  const [selectedCondo, setSelectedCondo] = useState("all");
+  const params = useMemo(() => new URLSearchParams(window.location.search), []);
+  const [selectedCondo, setSelectedCondo] = useState(params.get("condominiumId") || "all");
+  const contextType = params.get("contextType") || undefined;
+  const contextId = params.get("contextId") ? Number(params.get("contextId")) : undefined;
+  const contextLabel = params.get("contextLabel") || undefined;
   const [pending, setPending] = useState(false);
   const [lastQuestion, setLastQuestion] = useState<string | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
@@ -79,6 +83,8 @@ export default function Assistente() {
         body: JSON.stringify({
           message: question,
           condominiumId: selectedCondo !== "all" ? Number(selectedCondo) : undefined,
+          contextType,
+          contextId,
         }),
         signal: controller.signal,
       });
@@ -133,7 +139,7 @@ export default function Assistente() {
           <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
             <Sparkles className="h-6 w-6 text-primary" aria-hidden="true" /> Assistente IA
           </h1>
-          <p className="text-sm text-muted-foreground">Consulte regras, convenções e orientações para a gestão do condomínio.</p>
+          <p className="text-sm text-muted-foreground">Pergunte sobre pendências, ocorrências, documentos, financeiro, fornecedores, compliance e regras internas.</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -173,7 +179,7 @@ export default function Assistente() {
               </div>
               <h3 className="mb-2 text-lg font-semibold">Como posso ajudar?</h3>
               <p className="mb-6 max-w-md text-sm text-muted-foreground">
-                Pergunte sobre a rotina condominial ou selecione um condomínio para usar Convenção, Regimento e outros documentos indexados como contexto.
+                Pergunte sobre a operação da carteira ou selecione um condomínio. O Assistente usa os dados registrados no SindCopilot e, para regras internas, consulta os documentos indexados.
               </p>
               <div className="grid max-w-lg grid-cols-1 gap-2 sm:grid-cols-2">
                 {suggestions.map(suggestion => (
@@ -254,8 +260,8 @@ export default function Assistente() {
         </ScrollArea>
 
         <div className="border-t p-4">
-          {condoName && (
-            <p className="mb-2 text-xs text-muted-foreground">Contexto: <span className="font-medium">{condoName}</span></p>
+          {(condoName || contextLabel) && (
+            <p className="mb-2 text-xs text-muted-foreground">Contexto: <span className="font-medium">{[condoName, contextLabel].filter(Boolean).join(" · ")}</span></p>
           )}
           <div className="flex gap-2">
             <Input
