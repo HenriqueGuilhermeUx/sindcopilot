@@ -96,11 +96,12 @@ export async function createWooviSubscription(
       value: offer.priceCents,
       name: `SindCopilot ${plan.name}`,
       comment: offer.promoApplied
-        ? "SindCopilot Starter — preço fundador via parceiro"
+        ? "SindCopilot Starter — oferta exclusiva de parceiro por 12 meses"
         : `SindCopilot ${plan.name}`,
       dayGenerateCharge,
       frequency: "MONTHLY",
       type: "RECURRENT",
+      ...(offer.promoApplied ? { installmentCount: 12 } : {}),
       correlationID: subscriptionCorrelationID,
       customer: {
         name: profile.name,
@@ -124,6 +125,9 @@ export async function createWooviSubscription(
       woovi_subscription_id: subscription.globalID,
       woovi_subscription_correlation_id: subscriptionCorrelationID,
       woovi_subscription_value_cents: offer.priceCents,
+      woovi_promo_started_at: offer.promoApplied ? new Date().toISOString() : null,
+      woovi_promo_months: offer.promoApplied ? 12 : null,
+      woovi_regular_price_cents: offer.promoApplied ? PLANS.starter.priceMonthly : null,
       woovi_status: "pending",
       woovi_current_period_end: null,
     })
