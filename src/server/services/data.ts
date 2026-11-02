@@ -181,7 +181,7 @@ export async function condominiumTimeline(access:Access,condominiumId:number){
     supabaseAdmin.from("occurrences").select("id,title,status,severity,created_at,updated_at").eq("user_id",access.accountOwnerId).eq("condominium_id",condominiumId).order("created_at",{ascending:false}).limit(60),
     supabaseAdmin.from("notices").select("id,subject,type,status,created_at,sent_at").eq("user_id",access.accountOwnerId).eq("condominium_id",condominiumId).order("created_at",{ascending:false}).limit(60),
     supabaseAdmin.from("obligations").select("id,title,status,due_date,completed_at,created_at,responsible_name,evidence_document_id").eq("user_id",access.accountOwnerId).eq("condominium_id",condominiumId).order("created_at",{ascending:false}).limit(60),
-    supabaseAdmin.from("field_visits").select("id,title,status,started_at,completed_at,created_at").eq("user_id",access.accountOwnerId).eq("condominium_id",condominiumId).order("created_at",{ascending:false}).limit(60),
+    supabaseAdmin.from("field_visits").select("id,status,summary,urgent_count,attention_count,started_at,completed_at,created_at").eq("user_id",access.accountOwnerId).eq("condominium_id",condominiumId).order("created_at",{ascending:false}).limit(60),
     supabaseAdmin.from("activities").select("id,type,title,description,created_at").eq("user_id",access.accountOwnerId).eq("condominium_id",condominiumId).order("created_at",{ascending:false}).limit(80),
   ]);
   for(const result of [docs,occ,notices,obligations,visits,activities])if(result.error)throwDb(result.error);
@@ -190,7 +190,7 @@ export async function condominiumTimeline(access:Access,condominiumId:number){
   (occ.data||[]).forEach((r:any)=>items.push({id:`occurrence-${r.id}`,kind:"occurrence",title:r.title,subtitle:r.severity,status:r.status,date:r.created_at,entityId:r.id}));
   (notices.data||[]).forEach((r:any)=>items.push({id:`notice-${r.id}`,kind:"notice",title:r.subject,subtitle:r.type,status:r.status,date:r.sent_at||r.created_at,entityId:r.id}));
   (obligations.data||[]).forEach((r:any)=>items.push({id:`obligation-${r.id}`,kind:"obligation",title:r.title,subtitle:r.responsible_name||"Compliance",status:r.status,date:r.completed_at||r.created_at,entityId:r.id,evidenceDocumentId:r.evidence_document_id,dueDate:r.due_date}));
-  (visits.data||[]).forEach((r:any)=>items.push({id:`visit-${r.id}`,kind:"visit",title:r.title||"Visita / vistoria",subtitle:"Modo Visita",status:r.status,date:r.completed_at||r.started_at||r.created_at,entityId:r.id}));
+  (visits.data||[]).forEach((r:any)=>items.push({id:`visit-${r.id}`,kind:"visit",title:r.summary||"Visita / vistoria",subtitle:`${Number(r.urgent_count||0)} urgente(s) · ${Number(r.attention_count||0)} atenção`,status:r.status,date:r.completed_at||r.started_at||r.created_at,entityId:r.id}));
   (activities.data||[]).forEach((r:any)=>items.push({id:`activity-${r.id}`,kind:"activity",title:r.title,subtitle:r.type,status:null,date:r.created_at,entityId:r.id,description:r.description}));
   return items.sort((a,b)=>new Date(b.date).getTime()-new Date(a.date).getTime()).slice(0,150);
 }
