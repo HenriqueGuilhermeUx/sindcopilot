@@ -25,7 +25,7 @@ export const PLANS = {
   },
   starter: {
     name: "Starter",
-    priceMonthly: 9900,
+    priceMonthly: 7990,
     maxCondominiums: 6,
     maxAssistants: 1,
     ocrPerMonth: 100,
