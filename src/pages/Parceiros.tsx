@@ -145,7 +145,7 @@ function PublicProgram() {
             </CardHeader>
             <CardContent>
               <div className="flex items-end gap-2"><span className="text-5xl font-bold">R$ 49,90</span><span className="pb-1 text-slate-400">/mês</span></div>
-              <p className="mt-3 text-sm leading-6 text-slate-300">Starter normalmente a R$ 99/mês. Os primeiros 100 clientes originados por parceiros podem travar o preço fundador de R$ 49,90 enquanto mantiverem a assinatura ativa.</p>
+              <p className="mt-3 text-sm leading-6 text-slate-300">Starter de R$ 79,90 por R$ 49,90/mês durante 12 meses para os primeiros 100 clientes originados por parceiros.</p>
               <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.05] p-4 text-sm text-slate-300">
                 <strong className="text-white">Parceiro:</strong> 30% sobre o valor efetivamente pago, por até 12 meses.
               </div>
@@ -340,8 +340,8 @@ export default function Parceiros() {
                 <CardHeader><CardTitle>Kit de divulgação</CardTitle><CardDescription>Textos prontos com seu link rastreável. Edite livremente antes de publicar.</CardDescription></CardHeader>
                 <CardContent className="grid gap-3">
                   {primaryCode ? <>
-                    <Button variant="outline" className="justify-start" onClick={()=>void copyText(`Síndico ou administradora: conheça o SindCopilot, uma central para ocorrências, documentos, financeiro, compliance e rotina condominial. Oferta Fundadores 100: Starter por R$ 49,90/mês para os primeiros clientes pelo meu link: ${primaryCode.shareUrl}`, "Texto para WhatsApp")}><MessageCircle className="mr-2 h-4 w-4" />Copiar para WhatsApp</Button>
-                    <Button variant="outline" className="justify-start" onClick={()=>void copyText(`Gestão condominial com menos planilhas soltas e mais visão 360. Estou indicando o SindCopilot e há uma condição Fundadores 100 de R$ 49,90/mês no Starter. Acesse: ${primaryCode.shareUrl}`, "Legenda para Instagram")}><Instagram className="mr-2 h-4 w-4" />Copiar legenda Instagram</Button>
+                    <Button variant="outline" className="justify-start" onClick={()=>void copyText(`Síndico ou administradora: conheça o SindCopilot, uma central para ocorrências, documentos, financeiro, compliance e rotina condominial. Oferta Fundadores 100: Starter de R$ 79,90 por R$ 49,90/mês durante 12 meses para os primeiros clientes pelo meu link: ${primaryCode.shareUrl}`, "Texto para WhatsApp")}><MessageCircle className="mr-2 h-4 w-4" />Copiar para WhatsApp</Button>
+                    <Button variant="outline" className="justify-start" onClick={()=>void copyText(`Gestão condominial com menos planilhas soltas e mais visão 360. Estou indicando o SindCopilot e há uma condição Fundadores 100: Starter de R$ 79,90 por R$ 49,90/mês durante 12 meses. Acesse: ${primaryCode.shareUrl}`, "Legenda para Instagram")}><Instagram className="mr-2 h-4 w-4" />Copiar legenda Instagram</Button>
                     <Button variant="outline" className="justify-start" onClick={()=>void copyText(`Conheça o SindCopilot: plataforma para síndicos e gestores acompanharem ocorrências, unidades, documentos, compliance e financeiro em um só lugar. Meu link: ${primaryCode.shareUrl}`, "Descrição para vídeo")}><Youtube className="mr-2 h-4 w-4" />Copiar descrição de vídeo</Button>
                   </> : <p className="text-sm text-muted-foreground">O kit será liberado junto com seu código.</p>}
                 </CardContent>
