@@ -10,7 +10,7 @@ import { apiUrl } from "@/lib/runtime";
 
 const CONTACT_EMAIL = "henriquecampos66@gmail.com";
 const plans = [
-  { key:"starter" as const,name:"Starter",price:"99",description:"Para síndicos que gerenciam até 6 condomínios",features:["Até 6 condomínios","1 ajudante com acesso","Dashboard consolidado","Gestão documental com OCR","Agenda de compliance","Gerador de minutas com IA","Assistente documental","CRM de fornecedores","Exportação em PDF"],popular:false },
+  { key:"starter" as const,name:"Starter",price:"79,90",description:"Para síndicos que gerenciam até 6 condomínios",features:["Até 6 condomínios","1 ajudante com acesso","Dashboard consolidado","Gestão documental com OCR","Agenda de compliance","Gerador de minutas com IA","Assistente documental","CRM de fornecedores","Exportação em PDF"],popular:false },
   { key:"pro" as const,name:"Pro",price:"199",description:"Para síndicos com carteira expandida",features:["Até 16 condomínios","2 ajudantes com acesso","Tudo do plano Starter","Prioridade no suporte","Relatórios avançados","Busca semântica em documentos"],popular:true },
   { key:"scale" as const,name:"Scale",price:null,description:"Para grandes operações e administradoras",features:["Condomínios ilimitados","Até 10 ajudantes","Tudo do plano Pro","Onboarding dedicado","Suporte prioritário","Customizações sob demanda"],popular:false },
 ];
@@ -51,7 +51,7 @@ export default function Planos() {
       <p className="text-slate-600">{currentPlan !== "free" ? <span className="flex items-center justify-center gap-2"><Crown className="h-4 w-4 text-amber-500"/>Você está no plano <Badge variant="secondary">{currentLabel}</Badge></span> : "Invista menos do que uma hora de consultoria por mês."}</p>
       {wooviStatus === "pending" && <div className="mt-4 inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800"><QrCode className="h-4 w-4"/>Assinatura criada. Aguardando o primeiro pagamento Pix pela Woovi.</div>}
     </div>
-    {partnerOffer?.campaign?.remaining > 0 && <div className="mb-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center"><p className="font-semibold text-emerald-900">Oferta do parceiro {partnerOffer.code}: Starter por R$ 49,90/mês</p><p className="mt-1 text-sm text-emerald-800">Preço fundador para as primeiras {partnerOffer.campaign.maxRedemptions} reservas da campanha. Restam {partnerOffer.campaign.remaining}.</p></div>}
+    {partnerOffer?.campaign?.remaining > 0 && <div className="mb-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center"><p className="font-semibold text-emerald-900">Oferta do parceiro {partnerOffer.code}: Starter de R$ 79,90 por R$ 49,90/mês durante 12 meses</p><p className="mt-1 text-sm text-emerald-800">Condição exclusiva para os primeiros {partnerOffer.campaign.maxRedemptions} clientes da campanha. Restam {partnerOffer.campaign.remaining}.</p></div>}
     <div className="grid md:grid-cols-3 gap-8">{plans.map(plan => { const isCurrent = currentPlan === plan.key; const displayPrice = plan.key === "starter" && partnerOffer?.campaign?.remaining > 0 ? "49,90" : plan.price; return <Card key={plan.key} className={`relative flex flex-col ${plan.popular ? "border-blue-500 border-2 shadow-xl" : "border-slate-200"}`}>
       {plan.popular && <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600">Mais Popular</Badge>}
       {isCurrent && <Badge className="absolute -top-3 right-4 bg-emerald-600">Seu Plano</Badge>}
