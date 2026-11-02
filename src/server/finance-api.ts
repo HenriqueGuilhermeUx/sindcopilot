@@ -31,6 +31,10 @@ const transactionUpdateSchema = z.object({
   notes: z.string().trim().max(1000).optional().nullable(),
   learn: z.boolean().optional().default(true),
 });
+const approvalSchema = z.object({
+  status: z.enum(["approved","rejected"]),
+  note: z.string().trim().max(1000).optional().nullable(),
+});
 
 const closingSchema = z.object({
   condominiumId: z.number().int().positive(),
@@ -431,10 +435,12 @@ financeRouter.get("/", async (req: AuthRequest, res) => {
     const income = roundMoney(txs.filter((t: any) => t.direction === "income").reduce((s: number, t: any) => s + Number(t.amount), 0));
     const expenses = roundMoney(Math.abs(txs.filter((t: any) => t.direction === "expense").reduce((s: number, t: any) => s + Number(t.amount), 0)));
     const reviewCount = txs.filter((t: any) => t.needs_review).length;
+    const approvalCount = txs.filter((t: any) => t.direction === "expense" && t.approval_status === "pending").length;
+    const rejectedCount = txs.filter((t: any) => t.direction === "expense" && t.approval_status === "rejected").length;
     const categoryMap = new Map<string, number>();
     txs.forEach((t: any) => categoryMap.set(t.category, roundMoney((categoryMap.get(t.category) || 0) + Math.abs(Number(t.amount)))));
     const categories = [...categoryMap.entries()].map(([category, total]) => ({ category, total })).sort((a, b) => b.total - a.total);
-    return res.json({ month, statements, transactions: txs, closing, summary: { income, expenses, net: roundMoney(income - expenses), reviewCount, transactionCount: txs.length, categories } });
+    return res.json({ month, statements, transactions: txs, closing, summary: { income, expenses, net: roundMoney(income - expenses), reviewCount, approvalCount, rejectedCount, transactionCount: txs.length, categories } });
   } catch (error) { return sendError(res, error); }
 });
 
@@ -476,6 +482,7 @@ financeRouter.post("/import", async (req: AuthRequest, res) => {
         posted_at: tx.postedAt, description: tx.description, normalized_description: normalize(tx.description), amount: tx.amount,
         direction: tx.direction, category: cls.category, subcategory: cls.subcategory, confidence: cls.confidence,
         classification_source: cls.source, needs_review: cls.needsReview, source_line: tx.sourceLine, external_id: tx.externalId || null,
+        approval_status: tx.direction === "expense" ? "pending" : "not_required",
         fingerprint: fingerprint(tx, index),
       };
     });
@@ -553,6 +560,34 @@ financeRouter.patch("/transactions/:id", async (req: AuthRequest, res) => {
   } catch (error) { return sendError(res, error); }
 });
 
+financeRouter.patch("/transactions/:id/approval", async (req: AuthRequest, res) => {
+  try {
+    const user = req.financeUser!;
+    if (user.accountRole !== "owner") return res.status(403).json({ error: "A aprovação financeira é exclusiva do titular da conta." });
+    const id = Number(req.params.id);
+    const input = approvalSchema.parse(req.body);
+    const found = await supabaseAdmin.from("financial_transactions").select("*").eq("id", id).eq("user_id", user.accountOwnerId).maybeSingle();
+    if (found.error) throw new Error(found.error.message);
+    if (!found.data) throw new Error("Lançamento não encontrado");
+    if (found.data.direction !== "expense") throw new Error("Somente despesas passam por aprovação.");
+    await db.assertCondominium(access(user), Number(found.data.condominium_id), true);
+    const { error } = await supabaseAdmin.from("financial_transactions").update({
+      approval_status: input.status,
+      approval_note: input.note || null,
+      approved_by: user.id,
+      approved_at: new Date().toISOString(),
+    }).eq("id", id);
+    if (error) throw new Error(error.message);
+    await db.createActivity(access(user), {
+      condominiumId: Number(found.data.condominium_id),
+      type: input.status === "approved" ? "expense_approved" : "expense_rejected",
+      title: `${input.status === "approved" ? "Despesa aprovada" : "Despesa rejeitada"}: ${String(found.data.description).slice(0, 100)}`,
+      description: input.note || null,
+    });
+    return res.json({ success: true });
+  } catch (error) { return sendError(res, error); }
+});
+
 financeRouter.post("/closing", async (req: AuthRequest, res) => {
   try {
     const user = req.financeUser!; const input = closingSchema.parse(req.body);
@@ -590,8 +625,14 @@ financeRouter.post("/closing/:id/close", async (req: AuthRequest, res) => {
     await db.assertCondominium(access(user), Number(found.data.condominium_id), true);
     if (found.data.reconciliation_difference == null || Math.abs(Number(found.data.reconciliation_difference)) >= .01) throw new Error("O mês precisa estar conciliado até o centavo antes do fechamento.");
     const bounds = monthBounds(String(found.data.period_month).slice(0, 7));
-    const review = await supabaseAdmin.from("financial_transactions").select("id", { count: "exact", head: true }).eq("user_id", user.accountOwnerId).eq("condominium_id", found.data.condominium_id).gte("posted_at", bounds.start).lt("posted_at", bounds.next).eq("needs_review", true);
-    if (review.error) throw new Error(review.error.message); if ((review.count || 0) > 0) throw new Error("Ainda existem lançamentos que precisam de revisão.");
+    const [review, approvals] = await Promise.all([
+      supabaseAdmin.from("financial_transactions").select("id", { count: "exact", head: true }).eq("user_id", user.accountOwnerId).eq("condominium_id", found.data.condominium_id).gte("posted_at", bounds.start).lt("posted_at", bounds.next).eq("needs_review", true),
+      supabaseAdmin.from("financial_transactions").select("id", { count: "exact", head: true }).eq("user_id", user.accountOwnerId).eq("condominium_id", found.data.condominium_id).gte("posted_at", bounds.start).lt("posted_at", bounds.next).eq("direction","expense").in("approval_status",["pending","rejected"]),
+    ]);
+    if (review.error) throw new Error(review.error.message);
+    if (approvals.error) throw new Error(approvals.error.message);
+    if ((review.count || 0) > 0) throw new Error("Ainda existem lançamentos que precisam de revisão.");
+    if ((approvals.count || 0) > 0) throw new Error("Ainda existem despesas pendentes ou rejeitadas que precisam ser resolvidas antes do fechamento.");
     const { data, error } = await supabaseAdmin.from("financial_closings").update({ status: "closed", closed_by: user.id, closed_at: new Date().toISOString() }).eq("id", id).select("*").single();
     if (error) throw new Error(error.message);
     return res.json({ closing: data });
