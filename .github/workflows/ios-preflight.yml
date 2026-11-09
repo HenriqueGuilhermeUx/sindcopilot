@@ -31,7 +31,7 @@ jobs:
       - name: Install project dependencies without modifying lockfiles
         run: npm install --package-lock=false --no-audit --no-fund
       - name: Add matching Capacitor iOS dependency in ephemeral runner
-        run: npm install --no-save --package-lock=false --no-audit --no-fund @capacitor/ios@8.4.2
+        run: npm install --no-save --package-lock=false --no-audit --no-fund @capacitor/ios@8.6.0
       - name: Prepare iOS platform
         run: node scripts/prepare-ios.mjs
       - name: Build unsigned iOS simulator application
