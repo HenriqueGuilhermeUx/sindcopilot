@@ -17,3 +17,7 @@ Existing Capacitor app: `com.sindcopilot.app`; Capacitor major: 8; native web bu
 - Use actual iPhone/iPad screenshots and accurate privacy labels.
 - Do not add certificates/Apple credentials to Git or change Android pipeline.
 - Apple organization membership transfer is unresolved: no submission has been made.
+
+## Automated local preparation
+
+After installing the matching `@capacitor/ios` package and checking its lockfile, run `node scripts/prepare-ios.mjs` from the repository root on macOS with Xcode installed. The script refuses non-macOS execution and missing iOS dependencies; it builds the correct web assets then creates/synchronizes the local Capacitor iOS project. It does **not** sign, archive, run device tests or submit anything to Apple.
