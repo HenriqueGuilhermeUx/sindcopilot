@@ -53,3 +53,13 @@ Verificação direta da branch iOS `package.json` e `capacitor.config.ts`:
 5. Revisão de App Privacy/Privacy Manifest e descarte de extrato original e outros documentos pessoais.
 
 Nenhum item foi marcado como homologado nesta revisão. Não modificar dependências compartilhadas ou Android sem análise separada.
+
+## Pacote automatizado de dados sintéticos — 13/11/2026
+
+O PR de preparação passou a conter `scripts/ios/generate-synthetic-import-fixtures.mjs`, sem qualquer dado pessoal ou financeiro de clientes. O gerador produz um condomínio e uma conta **inteiramente fictícios**, três lançamentos determinísticos: crédito de R$ 1.500,00, débitos de R$ 280,40 e R$ 119,60, total líquido de **R$ 1.100,00**. Formatos produzidos: `CSV`, `XLSX`, `OFX`, mais `README.md` com valores esperados. O saldo inicial do extrato OFX é artificial.
+
+A workflow `.github/workflows/ios-preflight.yml` possui agora um job Ubuntu separado (`synthetic-import-fixtures`) que instala as dependências, gera esses arquivos e os arquiva como `ios-synthetic-bank-import-fixtures`. O smoke nativo de iPhone continua separado e passou a exigir `CFBundleIdentifier=com.sindcopilot.app` e arquivar screenshot após `simctl launch`. Alterações apenas em branch iOS sem assinatura.
+
+**Atenção:** gerar arquivos não é executar o parser, reconciliar lançamentos, conferir duplicidade, abrir PDF, validar acesso cruzado ou homologar o produto. Esses gates seguem **UNTESTED** até um operador/teste automatizado consumir as fixtures através do fluxo real em servidor e iPhone de homologação. Não levar dados ou URLs de produção ao CI.
+
+Referências: commits `2691678` (gerador), `54c2d9a` (screenshot + bundle ID) e `754aa31` (CI para fixtures). Conferir conclusão dos jobs antes de marcar as novas alterações como PASS.
