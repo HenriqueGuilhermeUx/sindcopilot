@@ -25,7 +25,8 @@ const wb = XLSX.utils.book_new();
 XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(transactions.map(t => ({
   data: t.date, descricao: t.description, valor: t.amount, id: t.id,
 }))), 'Extrato ficticio');
-XLSX.writeFile(wb, path.join(dir, 'condominio-ficticio.xlsx'), { bookType: 'xlsx' });
+const xlsxBytes = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+writeFileSync(path.join(dir, 'condominio-ficticio.xlsx'), xlsxBytes);
 const ofxDate = d => d.replaceAll('-', '') + '120000';
 const ofx = [
   'OFXHEADER:100',
