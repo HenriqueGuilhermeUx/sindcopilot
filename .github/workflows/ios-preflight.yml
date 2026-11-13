@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'scripts/prepare-ios.mjs'
+      - 'scripts/ios/**'
       - 'docs/ios/**'
       - '.github/workflows/ios-preflight.yml'
   workflow_dispatch:
@@ -16,6 +17,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  synthetic-import-fixtures:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies without changing lockfiles
+        run: npm install --package-lock=false --no-audit --no-fund
+      - name: Generate fictitious CSV, XLSX and OFX for offline QA
+        run: node scripts/ios/generate-synthetic-import-fixtures.mjs
+      - name: Archive synthetic fixtures (not import test results)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-synthetic-bank-import-fixtures
+          path: ios-qa-fixtures/
+          if-no-files-found: error
+          retention-days: 7
   simulator:
     runs-on: macos-15
     timeout-minutes: 45
