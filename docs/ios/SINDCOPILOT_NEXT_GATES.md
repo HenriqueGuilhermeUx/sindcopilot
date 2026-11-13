@@ -33,3 +33,23 @@ Status: **Fase 1 / unsigned build and simulator smoke confirmed; functional and 
 5. No TestFlight, provisioning, upload or merges under this Phase 1 document.
 
 Central: [Alternative Ventures iOS tracker](https://github.com/HenriqueGuilhermeUx/alternativeventures/issues/4).
+
+## Revisão incremental de dependências nativas — 13/11/2026
+
+Verificação direta da branch iOS `package.json` e `capacitor.config.ts`:
+
+- O build utiliza **Capacitor 8**, `webDir: dist/client` e Android `com.sindcopilot.app`; o ID de código não confirma a ficha Play comercial.
+- Existem dependências declaradas `@capacitor/camera`, `@capacitor/filesystem`, `@capacitor/share`, `@capacitor/network`, `@capacitor/device`, `@capacitor/haptics`, teclado e status bar. Mesmo se instaladas no build, cada permissão/recurso requer teste próprio no iPhone, especialmente a recusa de câmera/fotos e compartilhamento de PDFs.
+- O projeto depende de `xlsx` baixado de `https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`. O uso desse pacote e sua disponibilidade na CI não comprovam importação de XLSX no app iOS; testar arquivo via seletor de documentos, formatos malformados, limites de tamanho e duplicidade. Não incorporar extratos financeiros reais às evidências.
+- O `capacitor.config.ts` define `server.cleartext: false`, e `android.allowMixedContent: false`. São escolhas de código, **não comprovação** de que todos os endpoints usados em iOS são HTTPS ou de que não há conteúdo misto.
+- Para validar segurança de dados multi-condomínio, usar **dois condomínios e dois usuários fictícios** e confirmar falha controlada de acesso cruzado tanto em lista como em PDF, importações e arquivos. Os controles Supabase/tRPC precisam ser exercitados no servidor de homologação, não apenas na interface.
+
+### Critérios de saída que não podem ser inferidos do preflight
+
+1. Prova Play Console/AAB e identificação final da empresa Apple.
+2. Evidência de importação/retorno de XLSX, OFX, CSV e PDF com fixtures sintéticas.
+3. Permissões iOS reais e fallback de recusa de câmera/arquivos.
+4. Captura de rede e autenticação com endpoint de homologação seguro, sem dados pessoais.
+5. Revisão de App Privacy/Privacy Manifest e descarte de extrato original e outros documentos pessoais.
+
+Nenhum item foi marcado como homologado nesta revisão. Não modificar dependências compartilhadas ou Android sem análise separada.
