@@ -33,6 +33,8 @@ jobs:
         run: node scripts/ios/generate-synthetic-import-fixtures.mjs
       - name: Read back CSV, XLSX and OFX and verify fictional balances
         run: node scripts/ios/verify-synthetic-import-fixtures.mjs
+      - name: Test real CSV XLSX and OFX parser functions offline with synthetic data
+        run: node scripts/ios/test-real-statement-parser.mjs
       - name: Archive synthetic fixtures (not import test results)
         uses: actions/upload-artifact@v4
         with:
