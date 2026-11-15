@@ -70,3 +70,11 @@ Referências: commits `2691678` (gerador), `54c2d9a` (screenshot + bundle ID) e 
 - O erro anterior do gerador XLSX foi solucionado no commit `a3da507`; **isso não prova o parser de importação real** do aplicativo.
 - Adicionado script `scripts/ios/verify-synthetic-import-fixtures.mjs` (commit `267f93a`), que relê CSV, XLSX e OFX gerados, confronta 3 IDs/datas/valores em cada formato e o líquido fictício de R$ 1.100,00, sem banco, rede ou dados reais. O CI foi ampliado no commit `3ed0bb6` para exigir a verificação antes do arquivamento.
 - **A nova verificação só pode ser marcada PASS quando o novo job concluir.** Ainda permanecem pendentes importação pelo código de produção, classificação, conciliação, extratos/PDF, autenticação e segregação de condomínios.
+
+## Teste do parser de produção isolado, sem banco (15/11/2026)
+
+A [execução #43762801080](https://github.com/HenriqueGuilhermeUx/sindcopilot/actions/runs/43762801080) concluiu com os jobs `simulator` e `synthetic-import-fixtures` **SUCCESS**, comprovando tanto a nova compilação/abertura iOS quanto a geração + read-back de extratos fictícios.
+
+Identificado o parser usado pelo backend em `src/server/finance-api.ts`: `parseStatement`, `parseOfx` e `rowsToStatement`. O frontend `src/pages/Financeiro.tsx` envia o arquivo com `fileToBase64` para `importStatement`, que chama uma API protegida e depois armazena dados no Supabase. Para não tocar produção, incluído `scripts/ios/test-real-statement-parser.mjs` (commit `c3ddff4`), que extrai e transpila apenas o segmento de código real do parser, sem inicializar Express, Supabase, serviços externos ou credenciais. A workflow iOS foi atualizada no commit `4f556c4` para comparar o resultado real do parser de CSV, XLSX e OFX: quantidade, datas, direção, centavos, período e saldo de R$ 1.100,00, além de FITIDs OFX.
+
+**O teste do parser só recebe PASS após resultado verde específico do novo CI.** Mesmo aprovado, não seria prova de upload real, persistência, isolamento de condomínio, conciliação, anexos PDF ou funcionalidade do app iOS no dispositivo. Esses gates permanecem pendentes.
