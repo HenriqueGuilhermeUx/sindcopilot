@@ -37,6 +37,8 @@ jobs:
         run: node scripts/ios/test-real-statement-parser.mjs
       - name: Exercise real statement access and reconciliation with offline fakes
         run: node scripts/ios/test-financial-access-reconciliation.mjs
+      - name: Exercise actual authenticated import route with in-memory fictional tenants
+        run: node scripts/ios/test-import-route-offline.mjs
       - name: Archive synthetic fixtures (not import test results)
         uses: actions/upload-artifact@v4
         with:
