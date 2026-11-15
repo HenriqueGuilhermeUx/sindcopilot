@@ -63,3 +63,10 @@ A workflow `.github/workflows/ios-preflight.yml` possui agora um job Ubuntu sepa
 **Atenção:** gerar arquivos não é executar o parser, reconciliar lançamentos, conferir duplicidade, abrir PDF, validar acesso cruzado ou homologar o produto. Esses gates seguem **UNTESTED** até um operador/teste automatizado consumir as fixtures através do fluxo real em servidor e iPhone de homologação. Não levar dados ou URLs de produção ao CI.
 
 Referências: commits `2691678` (gerador), `54c2d9a` (screenshot + bundle ID) e `754aa31` (CI para fixtures). Conferir conclusão dos jobs antes de marcar as novas alterações como PASS.
+
+## CI green e read-back sintético (15/11/2026)
+
+- [Run 43502933973](https://github.com/HenriqueGuilhermeUx/sindcopilot/actions/runs/43502933973) encerrou **SUCCESS nos dois jobs**: `simulator` e `synthetic-import-fixtures`. Evidências GitHub: screenshot ID `14075438005`, .app unsigned ID `14074094974`, fixtures ID `14075237359`, log Xcode ID `14076200275`. Captura ainda sem revisão visual humana.
+- O erro anterior do gerador XLSX foi solucionado no commit `a3da507`; **isso não prova o parser de importação real** do aplicativo.
+- Adicionado script `scripts/ios/verify-synthetic-import-fixtures.mjs` (commit `267f93a`), que relê CSV, XLSX e OFX gerados, confronta 3 IDs/datas/valores em cada formato e o líquido fictício de R$ 1.100,00, sem banco, rede ou dados reais. O CI foi ampliado no commit `3ed0bb6` para exigir a verificação antes do arquivamento.
+- **A nova verificação só pode ser marcada PASS quando o novo job concluir.** Ainda permanecem pendentes importação pelo código de produção, classificação, conciliação, extratos/PDF, autenticação e segregação de condomínios.
