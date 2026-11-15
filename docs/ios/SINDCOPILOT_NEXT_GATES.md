@@ -78,3 +78,18 @@ A [execução #43762801080](https://github.com/HenriqueGuilhermeUx/sindcopilot/a
 Identificado o parser usado pelo backend em `src/server/finance-api.ts`: `parseStatement`, `parseOfx` e `rowsToStatement`. O frontend `src/pages/Financeiro.tsx` envia o arquivo com `fileToBase64` para `importStatement`, que chama uma API protegida e depois armazena dados no Supabase. Para não tocar produção, incluído `scripts/ios/test-real-statement-parser.mjs` (commit `c3ddff4`), que extrai e transpila apenas o segmento de código real do parser, sem inicializar Express, Supabase, serviços externos ou credenciais. A workflow iOS foi atualizada no commit `4f556c4` para comparar o resultado real do parser de CSV, XLSX e OFX: quantidade, datas, direção, centavos, período e saldo de R$ 1.100,00, além de FITIDs OFX.
 
 **O teste do parser só recebe PASS após resultado verde específico do novo CI.** Mesmo aprovado, não seria prova de upload real, persistência, isolamento de condomínio, conciliação, anexos PDF ou funcionalidade do app iOS no dispositivo. Esses gates permanecem pendentes.
+
+## Import endpoint integration harness — 15/11/2026
+
+The [previous CI run #43765550320](https://github.com/HenriqueGuilhermeUx/sindcopilot/actions/runs/43765550320) completed **SUCCESS** for both `simulator` and `synthetic-import-fixtures`. It includes the offline bank parser, access guard and reconciliation tests.
+
+The new `scripts/ios/test-import-route-offline.mjs` executes the **genuine** `financeRouter.post("/import")` handler and `requireUser` middleware extracted from `src/server/finance-api.ts` with an in-memory stub implementation of Supabase, object storage and condominium access (no service account, network, production or human data). It asserts:
+- Unauthenticated: 401; foreign condominium: 403.
+- Successful import of each synthetic CSV, XLSX and OFX with 3 entries, correct cents and ownership: 201.
+- Duplicate same bytes/condominium/owner: 409 and no additional stored records.
+- Same synthetic bytes under another authorized fictional owner + separate condominium: successful isolation.
+- Imported statements with unclassified entries remain in `review`, not falsely reconciled.
+
+Workflow integration: commits `a4271ac` and `699ea06`, [run #43767240402](https://github.com/HenriqueGuilhermeUx/sindcopilot/actions/runs/43767240402). **Do not mark this specific test PASS until the CI job finishes green.**
+
+This validates endpoint logic with **mocks**, not real authenticated HTTP, RLS, Supabase Storage ACLs, backend deployment, iPhone file picker or real multi-tenant database authorization. Those remain mandatory release gates. No Apple release or merge.
