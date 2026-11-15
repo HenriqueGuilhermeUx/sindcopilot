@@ -66,7 +66,7 @@ const fakeDb = {
   },
 };
 const ctx = vm.createContext({ supabaseAdmin: fakeSupabase, db: fakeDb, console, Number, Math, Error });
-const js = ts.transpileModule('function roundMoney(value: number) { return Math.round((value + Number.EPSILON) * 100) / 100; }\n' + fragment, {
+const js = ts.transpileModule('function access(user: unknown) { return user; }\nfunction roundMoney(value: number) { return Math.round((value + Number.EPSILON) * 100) / 100; }\n' + fragment, {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
 }).outputText;
 vm.runInContext(js + '\nthis.getStatement = statementById; this.recalculate = recalculateStatement;', ctx, { timeout: 1500 });
