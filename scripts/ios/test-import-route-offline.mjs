@@ -112,7 +112,7 @@ const compiled = ts.transpileModule(fragment, {
 const context = vm.createContext({
   Router: () => router, z, Buffer, createHash, randomUUID, XLSX,
   supabaseAdmin: fakeSupabase, db: guards, resolveContextUser: async req => req.actor || null,
-  console: { ...console, error() {} }, Number, String, Date, Math, RegExp,
+  console: { ...console, error() {} }, Number, String, Date, Math, RegExp, Error,
 });
 vm.runInContext(compiled, context, { timeout: 3000 });
 if (handlers.middleware.length !== 1 || !handlers.post.has('/import')) {
