@@ -446,6 +446,7 @@ financeRouter.get("/", async (req: AuthRequest, res) => {
 
 financeRouter.post("/import", async (req: AuthRequest, res) => {
   let uploadedKey: string | null = null;
+  let insertedStatement: { id: number; userId: string; condominiumId: number } | null = null;
   try {
     const user = req.financeUser!;
     const input = importSchema.parse(req.body);
@@ -472,8 +473,12 @@ financeRouter.post("/import", async (req: AuthRequest, res) => {
       opening_balance: parsed.openingBalance, bank_closing_balance: parsed.closingBalance,
       status: "imported", transaction_count: parsed.transactions.length, raw_metadata: parsed.metadata,
     }).select("*").single();
-    if (statementInsert.error) throw new Error(statementInsert.error.message);
+    if (statementInsert.error) {
+      if (statementInsert.error.code === "23505") throw new Error("Este extrato já foi importado (duplicado).");
+      throw new Error(statementInsert.error.message);
+    }
     const statement = statementInsert.data;
+    insertedStatement = { id: Number(statement.id), userId: user.accountOwnerId, condominiumId: input.condominiumId };
 
     const txRows = parsed.transactions.map((tx, index) => {
       const cls = classifyOne(tx, rules);
@@ -493,7 +498,25 @@ financeRouter.post("/import", async (req: AuthRequest, res) => {
     const reconciliation = await recalculateStatement(statement);
     return res.status(201).json({ id: Number(statement.id), format, imported: txRows.length, reviewCount: reconciliation.reviewCount, periodStart: parsed.periodStart, periodEnd: parsed.periodEnd, reconciliation });
   } catch (error) {
-    if (uploadedKey) await supabaseAdmin.storage.from(BUCKET).remove([uploadedKey]).catch(() => undefined);
+    // Compensating cleanup on partial failure. Database-level atomicity still needs a transactional RPC.
+    if (insertedStatement) {
+      try {
+        const { error: cleanupError } = await supabaseAdmin.from("financial_statements").delete()
+          .eq("id", insertedStatement.id).eq("user_id", insertedStatement.userId)
+          .eq("condominium_id", insertedStatement.condominiumId);
+        if (cleanupError) console.error("[Finance] Partial import statement cleanup failed", cleanupError);
+      } catch (cleanupError) {
+        console.error("[Finance] Partial import statement cleanup threw", cleanupError);
+      }
+    }
+    if (uploadedKey) {
+      try {
+        const { error: storageCleanupError } = await supabaseAdmin.storage.from(BUCKET).remove([uploadedKey]);
+        if (storageCleanupError) console.error("[Finance] Partial import storage cleanup failed", storageCleanupError);
+      } catch (storageCleanupError) {
+        console.error("[Finance] Partial import storage cleanup threw", storageCleanupError);
+      }
+    }
     return sendError(res, error);
   }
 });
