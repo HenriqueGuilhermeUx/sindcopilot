@@ -105,3 +105,12 @@ A read-only SQL metadata audit is provided at `docs/ios/sindcopilot-staging-read
 **Confirmed CI:** [run #43767396561](https://github.com/HenriqueGuilhermeUx/sindcopilot/actions/runs/43767396561) PASS for both unsigned simulator and offline import endpoint harness. No evidence yet of authenticated HTTP, database isolation, RLS, file picker or iOS production-equivalent QA.
 
 Before real staging import, establish the correct *dedicated* SindCopilot staging project/branch or approved ephemeral environment, ensure completely synthetic data, and check running migrations and storage bucket on it. Never substitute the AV shared database.
+
+## Segurança de importação — correção incremental isolada (16/11/2026)
+
+**Código alterado apenas na branch draft iOS (também é backend compartilhado; não efetuar merge sem revisão):**
+- Commit `27c1f5f` modifica `src/server/finance-api.ts` para acompanhar o extrato inserido e, ao ocorrer erro **após** a inserção, tentar excluí-lo por `id`, `user_id` e `condominium_id`. A FK com `ON DELETE CASCADE` da migration 0006 remove lançamentos vinculados quando essa compensação funciona. A limpeza do objeto no Storage agora também registra erros em vez de ignorá-los. Erro Postgres `23505` de violação de índice de unicidade é traduzido para conflito de duplicata (HTTP 409).
+- Commit `6c89452` amplia o teste isolado `test-import-route-offline.mjs` com simulação de falha na inserção de transações e comprovação de limpeza dos registros/objetos **nos mocks**, além de teste de conflito de unicidade na inserção, com lookup de duplicidade artificialmente omitido.
+- Commit `07f8a9f` adiciona **somente como proposta NÃO aplicada** `docs/ios/sindcopilot-unique-sha-staging-candidate.sql`, com verificação prévia de duplicatas e índice único parcial em `(user_id, condominium_id, sha256) WHERE sha256 IS NOT NULL`. Esse índice precisa ser revisado, testado e efetivamente implantado **apenas em staging SindCopilot identificado**, antes de se afirmar proteção de concorrência.
+
+**Limites de segurança:** o cleanup compensatório NÃO é uma transação atômica entre Storage e Postgres. Caso a compensação falhe, ainda pode restar registro parcial; para garantia final, é preciso RPC/transação Postgres e reconciliação assíncrona de arquivos. A migração única não foi executada em nenhum Supabase. O novo teste ainda requer CI concluído, e a homologação E2E permanece bloqueada por falta de projeto Supabase SindCopilot isolado. Não alterar o app Android publicado, o esquema de produção ou o Netlify.
