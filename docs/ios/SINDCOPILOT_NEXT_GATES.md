@@ -93,3 +93,15 @@ The new `scripts/ios/test-import-route-offline.mjs` executes the **genuine** `fi
 Workflow integration: commits `a4271ac` and `699ea06`, [run #43767240402](https://github.com/HenriqueGuilhermeUx/sindcopilot/actions/runs/43767240402). **Do not mark this specific test PASS until the CI job finishes green.**
 
 This validates endpoint logic with **mocks**, not real authenticated HTTP, RLS, Supabase Storage ACLs, backend deployment, iPhone file picker or real multi-tenant database authorization. Those remain mandatory release gates. No Apple release or merge.
+
+## Real Supabase staging discovery and read-only gate — 15/11/2026
+
+**Current connector audit:** Only Finsight (inactive), `av-os-data-hub` (active), and `mindsteps.org` (active) are visible on the connected Supabase account. **None is verified as a SindCopilot staging database.** The `av-os-data-hub` public schema contains AV/market/financial intelligence tables and **not** the SindCopilot `financial_statements`, `financial_transactions`, `condominiums` tables required by the repo. Its branching list is empty. Do not repurpose those unrelated projects or write fictitious condominium records there.
+
+A read-only SQL metadata audit is provided at `docs/ios/sindcopilot-staging-readonly-audit.sql`: expected tables, RLS enabled flags, grants for `anon`/`authenticated`, constraints/indexes and the private Storage bucket metadata. **It has not been executed on SindCopilot**, because no isolated project is verified. No database changes, seed, Auth users or Storage records were made.
+
+**Source review of `supabase/migrations/0006_financeiro_inteligente.sql`:** four financial tables have RLS enabled and direct `anon`/`authenticated` table privileges revoked; backend imports use `service_role` and enforce access with `db.assertCondominium`. This needs server/RLS and token tests on a genuinely isolated staging instance. The duplicate check uses `sha256` before import but there is no unique constraint on `user_id,condominium_id,sha256` in migration 0006; simultaneous duplicate uploads may race. The error cleanup in `finance-api.ts` removes the uploaded object but does not clearly roll back a statement inserted before a later transaction insert failure. **Both risks are release blockers pending transactional and idempotency tests.**
+
+**Confirmed CI:** [run #43767396561](https://github.com/HenriqueGuilhermeUx/sindcopilot/actions/runs/43767396561) PASS for both unsigned simulator and offline import endpoint harness. No evidence yet of authenticated HTTP, database isolation, RLS, file picker or iOS production-equivalent QA.
+
+Before real staging import, establish the correct *dedicated* SindCopilot staging project/branch or approved ephemeral environment, ensure completely synthetic data, and check running migrations and storage bucket on it. Never substitute the AV shared database.
