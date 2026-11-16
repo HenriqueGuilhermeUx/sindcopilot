@@ -21,7 +21,7 @@ for (const marker of ['financeRouter.use(requireUser)', 'financeRouter.post("/im
   if (!fragment.includes(marker)) throw new Error('Original import route missing safety step: ' + marker);
 }
 
-const store = { statements: [], transactions: [], files: new Map(), nextId: 1, guards: [] };
+const store = { statements: [], transactions: [], files: new Map(), nextId: 1, guards: [], failNextTransactionInsert: false, hideDuplicatePrecheckOnce: false };
 const membership = new Map([
   ['fictional-owner-A', new Set([101])],
   ['fictional-owner-B', new Set([202])],
@@ -37,13 +37,21 @@ const query = (table) => {
     order() { return q; },
     insert(value) { action = 'insert'; mutation = value; return q; },
     update(value) { action = 'update'; mutation = value; return q; },
+    delete() { action = 'delete'; return q; },
     maybeSingle: async () => {
       if (table !== 'financial_statements' || action !== 'select') throw new Error('Unexpected maybeSingle path');
       const row = store.statements.find(s => Object.entries(filters).every(([k,v]) => s[k] === v));
+      if (store.hideDuplicatePrecheckOnce && Object.hasOwn(filters, "sha256")) {
+        store.hideDuplicatePrecheckOnce = false;
+        return ok(null);
+      }
       return ok(row ?? null);
     },
     single: async () => {
       if (table !== 'financial_statements' || action !== 'insert') throw new Error('Unexpected insert().single()');
+      if (store.statements.some(row => row.user_id === mutation.user_id && row.condominium_id === mutation.condominium_id && row.sha256 === mutation.sha256)) {
+        return { data: null, error: { code: "23505", message: "duplicate key value violates unique constraint" } };
+      }
       const value = { ...mutation, id: store.nextId++ };
       store.statements.push(value);
       return ok(value);
@@ -53,6 +61,10 @@ const query = (table) => {
         if (table === 'financial_category_rules' && action === 'select') return ok([]);
         if (table === 'financial_transactions' && action === 'insert') {
           if (!Array.isArray(mutation)) throw new Error('Transactions must be array');
+          if (store.failNextTransactionInsert) {
+            store.failNextTransactionInsert = false;
+            return { data: null, error: { message: "Synthetic transaction insert failure" } };
+          }
           store.transactions.push(...mutation);
           return ok();
         }
@@ -60,6 +72,12 @@ const query = (table) => {
           return ok(store.transactions.filter(t => t.statement_id === filters.statement_id).map(t => ({
             amount: t.amount, needs_review: t.needs_review,
           })));
+        }
+        if (table === 'financial_statements' && action === 'delete') {
+          const before = store.statements.length;
+          store.statements = store.statements.filter(s => !Object.entries(filters).every(([k,v]) => s[k] === v));
+          if (store.statements.length !== before) store.transactions = store.transactions.filter(t => store.statements.some(s => s.id === t.statement_id));
+          return ok();
         }
         if (table === 'financial_statements' && action === 'update') {
           const record = store.statements.find(s => s.id === filters.id);
@@ -170,5 +188,20 @@ result = await invoke(B, 202, 'csv');
 expect(result.code === 201 && result.body.imported === 3, 'Second fictional owner cannot import same synthetic bytes in own condominium');
 expect(store.statements.length === 4 && store.transactions.length === 12, 'Unexpected synthetic database totals');
 expect(store.guards.some(x => x.user === A.accountOwnerId && x.condoId === 101 && x.write), 'No writable condo permission check');
+const countsBeforeFailure = [store.statements.length, store.transactions.length, store.files.size];
+store.failNextTransactionInsert = true;
+result = await invoke(A, 101, 'csv', { fileName: 'fake-retry-new-name.csv', fileBase64: readFileSync(join(process.env.IOS_FIXTURES_DIR || 'ios-qa-fixtures', 'condominio-ficticio.csv')).toString('base64') });
+// This same content is already imported under owner A; choose new fictional content for injection below.
+expect(result.code === 409, 'Exact duplicate should remain blocked');
+store.failNextTransactionInsert = false;
+const alteredBytes = readFileSync(join(process.env.IOS_FIXTURES_DIR || 'ios-qa-fixtures', 'condominio-ficticio.csv'), 'utf8').replace('QA-001', 'QA-901');
+store.failNextTransactionInsert = true;
+result = await invoke(A, 101, 'csv', { fileBase64: Buffer.from(alteredBytes).toString('base64') });
+expect(result.code === 400, 'Synthetic failed transaction insert should be reported');
+expect(countsBeforeFailure.every((x, i) => x === [store.statements.length, store.transactions.length, store.files.size][i]), 'Partial import not cleaned up after failed transaction insert');
+store.hideDuplicatePrecheckOnce = true;
+result = await invoke(A, 101, 'csv');
+expect(result.code === 409, 'Database-level unique constraint violation should map to 409');
+expect(countsBeforeFailure.every((x, i) => x === [store.statements.length, store.transactions.length, store.files.size][i]), 'DB uniqueness rejection caused side effects');
 console.log('PASS actual financeRouter import handler in memory: 401 missing auth, 403 cross-condominium, 201 CSV/XLSX/OFX, 409 duplicate, isolated second owner');
 console.log('All in-memory fictional records: 4 statements, 12 transactions; no real DB, storage, network or credentials.');
