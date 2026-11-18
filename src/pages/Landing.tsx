@@ -37,7 +37,7 @@ import {
   Zap,
 } from "lucide-react";
 
-const CONTACT_EMAIL = "henriquecampos66@gmail.com";
+const CONTACT_EMAIL = "corporate@alternativeventures.com.br";
 const MOBILE_URL = "https://sindcopilot.com/visitas";
 
 type BeforeInstallPromptEvent = Event & {
